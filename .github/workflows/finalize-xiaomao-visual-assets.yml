@@ -1,0 +1,40 @@
+name: Finalize XiaoMao visual assets
+
+on:
+  push:
+    branches:
+      - chore/xiaomao-visual-assets
+    paths:
+      - .github/workflows/finalize-xiaomao-visual-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: chore/xiaomao-visual-assets
+
+      - name: Remove temporary workflows
+        shell: bash
+        run: |
+          set -e
+          git fetch origin chore/xiaomao-visual-assets
+          git reset --hard origin/chore/xiaomao-visual-assets
+          git rm -f --ignore-unmatch \
+            .github/workflows/generate-xiaomao-assets.yml \
+            .github/workflows/cleanup-xiaomao-asset-generator.yml \
+            .github/workflows/finalize-xiaomao-visual-assets.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: remove temporary visual asset workflows'
+            git pull --rebase origin chore/xiaomao-visual-assets
+            git push origin HEAD:chore/xiaomao-visual-assets
+          fi
