@@ -793,7 +793,7 @@ const animationStyle = computed(() => {
 })
 
 const authorData = computed(() => {
-  // 使用小石榴号进行用户跳转
+  // 使用毛毛号进行用户跳转
   const userId = props.item.author_account || props.item.user_id || props.item.originalData?.userId
   const followState = followStore.getUserFollowState(userId)
   return {
@@ -1350,7 +1350,7 @@ const toggleCollect = async () => {
 
 const handleShare = async () => {
   try {
-    const shareUrl = `【${props.item.title}-${props.item.author}| 小石榴 - 你的校园图文部落】${window.location.origin}/post?id=${props.item.id}`
+    const shareUrl = `【${props.item.title}-${props.item.author}| 小毛毛 - 你的校园图文部落】${window.location.origin}/post?id=${props.item.id}`
 
     // 检查是否支持现代剪贴板API
     if (navigator.clipboard && navigator.clipboard.writeText) {

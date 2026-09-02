@@ -57,7 +57,7 @@ const currentBanInfo = ref(null)
 
 const columns = [
   { key: 'id', label: 'ID', sortable: true },
-  { key: 'user_id', label: '小石榴号', type: 'user-link', sortable: false, maxLength: 15 },
+  { key: 'user_id', label: '毛毛号', type: 'user-link', sortable: false, maxLength: 15 },
   { key: 'nickname', label: '用户昵称', sortable: false },
   { key: 'avatar', label: '头像', type: 'image', sortable: false },
   { key: 'bio', label: '简介', type: 'content', sortable: false },
@@ -113,7 +113,7 @@ const banFormFields = [
 
 // 通用用户表单字段
 const userFormFields = [
-  { key: 'user_id', label: '小石榴号', type: 'text', required: true, placeholder: '请输入小石榴号', maxlength: 15 },
+  { key: 'user_id', label: '毛毛号', type: 'text', required: true, placeholder: '请输入毛毛号', maxlength: 15 },
   { key: 'nickname', label: '昵称', type: 'text', required: true, placeholder: '请输入昵称', maxlength: 10 },
   { key: 'avatar', label: '头像', type: 'avatar-upload', placeholder: '上传头像' },
   { key: 'avatar', label: '头像URL', type: 'text', placeholder: '请输入头像URL或使用上方上传功能' },
@@ -359,7 +359,7 @@ const handleBanSubmit = async (formData) => {
 const formFields = userFormFields
 
 const searchFields = [
-  { key: 'user_id', label: '小石榴号', placeholder: '搜索小石榴号' },
+  { key: 'user_id', label: '毛毛号', placeholder: '搜索毛毛号' },
   { key: 'nickname', label: '昵称', placeholder: '搜索昵称' },
   { key: 'location', label: '属地', placeholder: '搜索属地' },
   {
