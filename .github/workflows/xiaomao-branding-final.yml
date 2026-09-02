@@ -1,0 +1,277 @@
+name: Finalize XiaoMao branding
+
+on:
+  push:
+    branches:
+      - chore/xiaomao-branding-final
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-branding:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Install image tooling
+        run: python3 -m pip install --disable-pip-version-check Pillow
+
+      - name: Apply final naming and logo changes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+
+          root = Path('.')
+          workflow = Path('.github/workflows/xiaomao-branding-final.yml')
+          excluded_dirs = {'.git', 'node_modules', 'dist', '.vite'}
+
+          replacements = [
+              ('小石榴 - 你的校园图文部落', '小毛毛 - 毛毛的快乐狗生'),
+              ('小石榴校园图文社区', '小毛毛生活社区'),
+              ('小石榴图文社区', '小毛毛社区'),
+              ('小毛毛校园图文社区', '小毛毛生活社区'),
+              ('小毛毛图文社区', '小毛毛社区'),
+              ('小石榴号', '毛毛号'),
+              ('石榴号', '毛毛号'),
+              ('小石榴', '小毛毛'),
+              ('ZTMYO/XiaoShiLiu', 'xzyone/xiaomao'),
+              ('XiaoShiLiu', 'XiaoMao'),
+              ('Xiaoshiliu', 'Xiaomao'),
+              ('XIAOSHILIU', 'XIAOMAO'),
+              ('xiaoshiliu', 'xiaomao'),
+              ('https://www.shiliu.space', 'https://mao.kdgq.com'),
+              ('https://shiliu.space', 'https://mao.kdgq.com'),
+              ('VITE_APP_TITLE=小毛毛社区', 'VITE_APP_TITLE=小毛毛 - 毛毛的快乐狗生'),
+              ('VITE_APP_TITLE=小毛毛生活社区', 'VITE_APP_TITLE=小毛毛 - 毛毛的快乐狗生'),
+              ('VITE_APP_TITLE=小毛毛图文社区', 'VITE_APP_TITLE=小毛毛 - 毛毛的快乐狗生'),
+              ('小毛毛.svg', '小毛毛.png'),
+          ]
+
+          changed = []
+          for path in root.rglob('*'):
+              if not path.is_file() or path == workflow:
+                  continue
+              if any(part in excluded_dirs for part in path.parts):
+                  continue
+              try:
+                  original = path.read_text(encoding='utf-8')
+              except (UnicodeDecodeError, OSError):
+                  continue
+
+              updated = original
+              for old, new in replacements:
+                  updated = updated.replace(old, new)
+
+              if updated != original:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(str(path))
+
+          def replace_required(path_str: str, old: str, new: str) -> None:
+              path = Path(path_str)
+              text = path.read_text(encoding='utf-8')
+              if old not in text:
+                  raise RuntimeError(f'Expected block not found in {path_str}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+              changed.append(path_str)
+
+          # Main site header: preserve the wordmark aspect ratio and remove the
+          # old pill background, which would clash with the transparent logo.
+          replace_required(
+              'vue3-project/src/views/layout/components/LayoutHeader.vue',
+              '''.logo {
+    width: 68.32px;
+    height: 32px;
+    color: var(--button-text-color);
+    background: var(--primary-color);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+img {
+    width: 68.32px;
+    height: 32px;
+}''',
+              '''.logo {
+    width: 96px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.logo img {
+    display: block;
+    width: 96px;
+    height: auto;
+    max-height: 40px;
+    object-fit: contain;
+}'''
+          )
+
+          # About dialog: show the complete paw + text wordmark without
+          # squeezing it into the former square logo box.
+          replace_required(
+              'vue3-project/src/components/modals/AboutModal.vue',
+              '''.about-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-color);
+}
+
+.about-logo img {
+  width: 120%;
+  height: 100%;
+  object-fit: contain;
+}''',
+              '''.about-logo {
+  width: 104px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-logo img {
+  width: 104px;
+  height: auto;
+  max-height: 40px;
+  object-fit: contain;
+}'''
+          )
+
+          # The collapsed admin sidebar needs a square mark, so use the paw
+          # icon derived from the same generated logo instead of distorting the
+          # full wordmark.
+          admin_path = Path('vue3-project/src/views/admin/AdminLayout.vue')
+          admin_text = admin_path.read_text(encoding='utf-8')
+          admin_text = admin_text.replace(
+              "new URL('@/assets/imgs/小毛毛.png', import.meta.url).href",
+              "new URL('@/assets/imgs/小毛毛图标.png', import.meta.url).href",
+              1,
+          )
+          admin_path.write_text(admin_text, encoding='utf-8')
+          changed.append(str(admin_path))
+
+          replace_required(
+              'vue3-project/src/views/admin/AdminLayout.vue',
+              '''.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--primary-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon img {
+  width: 120%;
+  height: 100%;
+  object-fit: contain;
+}''',
+              '''.logo-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}'''
+          )
+
+          for legacy_svg in [
+              Path('vue3-project/src/assets/imgs/小毛毛.svg'),
+              Path('doc/imgs/小毛毛.svg'),
+          ]:
+              if legacy_svg.exists():
+                  legacy_svg.unlink()
+                  changed.append(str(legacy_svg))
+
+          # Rebuild all browser and PWA icons from the matching generated paw.
+          icon_source = Image.open('vue3-project/src/assets/imgs/小毛毛图标.png').convert('RGBA')
+
+          def save_square(path: str, size: int) -> None:
+              image = icon_source.resize((size, size), Image.Resampling.LANCZOS)
+              image.save(path, optimize=True)
+
+          save_square('vue3-project/public/favicon-32x32.png', 32)
+          save_square('vue3-project/public/favicon-64x64.png', 64)
+          save_square('vue3-project/public/apple-touch-icon.png', 180)
+          save_square('vue3-project/public/android-icon-192x192.png', 192)
+          save_square('vue3-project/public/android-icon-512x512.png', 512)
+          icon_source.save(
+              'vue3-project/public/logo.ico',
+              format='ICO',
+              sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+          )
+
+          print(f'Updated {len(set(changed))} text or legacy asset paths.')
+          PY
+
+      - name: Verify legacy branding is gone
+        shell: bash
+        run: |
+          if git grep -n -I -E '石榴|XiaoShiLiu|Xiaoshiliu|XIAOSHILIU|xiaoshiliu'; then
+            echo 'Legacy branding remains in tracked text files.' >&2
+            exit 1
+          fi
+
+          legacy_paths="$(find . -path './.git' -prune -o \( -name '*小石榴*' -o -name '*XiaoShiLiu*' -o -name '*xiaoshiliu*' \) -print)"
+          if [ -n "$legacy_paths" ]; then
+            echo 'Legacy branding remains in file or directory names:' >&2
+            printf '%s\n' "$legacy_paths" >&2
+            exit 1
+          fi
+
+          test -f vue3-project/src/assets/imgs/小毛毛.png
+          test -f vue3-project/src/assets/imgs/小毛毛图标.png
+          test -f vue3-project/public/logo.ico
+          grep -F 'VITE_APP_TITLE=小毛毛 - 毛毛的快乐狗生' vue3-project/.env.example
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: vue3-project/package-lock.json
+
+      - name: Verify frontend build
+        working-directory: vue3-project
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit final branding
+        shell: bash
+        run: |
+          rm -f .github/workflows/xiaomao-branding-final.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No branding changes to commit.'
+            exit 0
+          fi
+          git commit -m 'chore: finalize XiaoMao branding and logo'
+          git push origin HEAD:${GITHUB_REF_NAME}
