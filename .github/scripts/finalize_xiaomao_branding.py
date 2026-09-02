@@ -16,6 +16,7 @@ REPLACEMENTS = [
     ('小石榴号', '毛毛号'),
     ('石榴号', '毛毛号'),
     ('小石榴', '小毛毛'),
+    ('石榴', '毛毛'),
     ('ZTMYO/XiaoShiLiu', 'xzyone/xiaomao'),
     ('XiaoShiLiu', 'XiaoMao'),
     ('Xiaoshiliu', 'Xiaomao'),

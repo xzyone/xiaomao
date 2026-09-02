@@ -28,7 +28,7 @@ jobs:
       - name: Verify legacy branding is gone
         shell: bash
         run: |
-          if git grep -n -I -E '石榴|XiaoShiLiu|Xiaoshiliu|XIAOSHILIU|xiaoshiliu'; then
+          if git grep -n -I -E '石榴|XiaoShiLiu|Xiaoshiliu|XIAOSHILIU|xiaoshiliu' -- . ':(exclude).github/scripts/finalize_xiaomao_branding.py' ':(exclude).github/workflows/xiaomao-branding-final.yml'; then
             echo 'Legacy branding remains in tracked text files.' >&2
             exit 1
           fi
