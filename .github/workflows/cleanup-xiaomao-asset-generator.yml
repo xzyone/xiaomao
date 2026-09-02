@@ -1,0 +1,53 @@
+name: Cleanup XiaoMao asset generator
+
+on:
+  push:
+    branches:
+      - chore/xiaomao-visual-assets
+    paths:
+      - .github/workflows/cleanup-xiaomao-asset-generator.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: chore/xiaomao-visual-assets
+
+      - name: Wait for generated assets
+        shell: bash
+        run: |
+          set -e
+          ready=0
+          for i in $(seq 1 20); do
+            git fetch origin chore/xiaomao-visual-assets
+            git reset --hard origin/chore/xiaomao-visual-assets
+            if [ -f 'vue3-project/src/assets/imgs/小毛毛.png' ] \
+               && [ -f 'vue3-project/src/assets/imgs/小毛毛爪印.png' ] \
+               && [ -f 'vue3-project/public/logo.ico' ] \
+               && git log --format=%s -20 | grep -q 'complete XiaoMao visual identity assets'; then
+              ready=1
+              break
+            fi
+            sleep 30
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo 'Generated assets were not found in time.' >&2
+            exit 1
+          fi
+
+      - name: Remove one-time workflows
+        run: |
+          git rm -f .github/workflows/generate-xiaomao-assets.yml \
+                    .github/workflows/cleanup-xiaomao-asset-generator.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: remove one-time visual asset workflows'
+          git push origin HEAD:chore/xiaomao-visual-assets
