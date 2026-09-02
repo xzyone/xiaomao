@@ -18,7 +18,8 @@ const config = {
   // 服务器配置
   server: {
     port: process.env.PORT || 3001,
-    env: process.env.NODE_ENV || 'development'
+    env: process.env.NODE_ENV || 'development',
+    trustProxy: parseInt(process.env.TRUST_PROXY || '0', 10)
   },
 
   // CORS配置
