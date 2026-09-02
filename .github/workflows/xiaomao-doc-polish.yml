@@ -31,8 +31,9 @@ jobs:
           }
 
           changed = []
+          workflow = Path('.github/workflows/xiaomao-doc-polish.yml')
           for path in Path('.').rglob('*'):
-              if not path.is_file() or '.git' in path.parts or path == Path('.github/workflows/xiaomao-doc-polish.yml'):
+              if not path.is_file() or '.git' in path.parts or path == workflow:
                   continue
               try:
                   original = path.read_text(encoding='utf-8')
@@ -50,7 +51,7 @@ jobs:
               print(f'  - {item}')
           PY
 
-          if git grep -n -I -E 'Pear毛毛|Small毛毛|Small 毛毛'; then
+          if git grep -n -I -E 'Pear毛毛|Small毛毛|Small 毛毛' -- . ':(exclude).github/workflows/xiaomao-doc-polish.yml'; then
             echo 'Mixed-language legacy branding remains.' >&2
             exit 1
           fi
