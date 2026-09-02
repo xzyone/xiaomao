@@ -1,6 +1,6 @@
 # 部署指南
 
-本文件提供 XiaoShiLiu 圖文社區項目的部署流程及配置說明。
+本文件提供 XiaoMao 圖文社區項目的部署流程及配置說明。
 
 ## 部署方法
 
@@ -38,8 +38,8 @@
 #### 1. 克隆項目
 
 ```bash
-git clone https://github.com/ZTMYO/XiaoShiLiu.git
-cd XiaoShiLiu
+git clone https://github.com/xzyone/xiaomao.git
+cd XiaoMao
 ```
 
 #### 2. 配置環境變數
@@ -54,13 +54,13 @@ cp .env.docker .env
 ```env
 # 資料庫配置
 DB_HOST=mysql
-DB_USER=xiaoshiliu_user
+DB_USER=xiaomao_user
 DB_PASSWORD=123456
-DB_NAME=xiaoshiliu
+DB_NAME=xiaomao
 DB_PORT=3306
 
 # JWT配置
-JWT_SECRET=xiaoshiliu_secret_key_2025_docker
+JWT_SECRET=xiaomao_secret_key_2025_docker
 JWT_EXPIRES_IN=7d
 REFRESH_TOKEN_EXPIRES_IN=30d
 
@@ -220,7 +220,7 @@ PORT=3001
 NODE_ENV=development
 
 # JWT 配置
-JWT_SECRET=xiaoshiliu_secret_key_2025
+JWT_SECRET=xiaomao_secret_key_2025
 JWT_EXPIRES_IN=7d
 REFRESH_TOKEN_EXPIRES_IN=30d
 
@@ -228,7 +228,7 @@ REFRESH_TOKEN_EXPIRES_IN=30d
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=123456
-DB_NAME=xiaoshiliu
+DB_NAME=xiaomao
 DB_PORT=3306
 
 # 上傳配置
@@ -751,7 +751,7 @@ npm run dev
 VITE_API_BASE_URL=http://localhost:3001/api
 
 # 其他前端配置
-VITE_APP_TITLE=Small石榴Image and Text Community
+VITE_APP_TITLE=Small毛毛Image and Text Community
 VITE_USE_REAL_API=true
 ```
 
@@ -763,7 +763,7 @@ NODE_ENV=development
 PORT=3001
 
 # JWT 配置
-JWT_SECRET=xiaoshiliu_secret_key_2025
+JWT_SECRET=xiaomao_secret_key_2025
 JWT_EXPIRES_IN=7d
 REFRESH_TOKEN_EXPIRES_IN=30d
 
@@ -771,7 +771,7 @@ REFRESH_TOKEN_EXPIRES_IN=30d
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=123456
-DB_NAME=xiaoshiliu
+DB_NAME=xiaomao
 DB_PORT=3306
 
 # API 配置
@@ -802,7 +802,7 @@ VIDEO_UPLOAD_STRATEGY=local
   cd express-project
   node scripts/init-database.js
 
-- **描述**：必須執行首次部署，將自動建立 `xiaoshiliu` 資料庫及 12 個資料表
+- **描述**：必須執行首次部署，將自動建立 `xiaomao` 資料庫及 12 個資料表
 
 #### 2. 測試資料生成腳本
 - **檔案位置**：`scripts/generate-data.js`

@@ -1,5 +1,5 @@
 /**
- * 小毛毛校园图文社区 - Vite配置文件
+ * 小毛毛生活社区 - Vite配置文件
  * 
  * @author ZTMYO
  * @github https://github.com/ZTMYO

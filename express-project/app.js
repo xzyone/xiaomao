@@ -1,5 +1,5 @@
 /**
- * 小毛毛校园图文社区 - Express后端服务
+ * 小毛毛生活社区 - Express后端服务
  * 
  * @author ZTMYO
  * @github https://github.com/ZTMYO

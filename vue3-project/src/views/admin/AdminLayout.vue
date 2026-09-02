@@ -146,7 +146,7 @@ const themeStore = useThemeStore()
 const { confirmState, handleConfirm, handleCancel, confirmLogout } = useConfirm()
 const { lock, unlock } = useScrollLock()
 
-const logoUrl = new URL('@/assets/imgs/小毛毛.svg', import.meta.url).href
+const logoUrl = new URL('@/assets/imgs/小毛毛图标.png', import.meta.url).href
 
 const indicatorPosition = computed(() => {
   const index = themeStore.themeOptions.findIndex(option => option.value === themeStore.currentTheme)
@@ -435,16 +435,14 @@ const goBack = () => {
 .logo-icon {
   width: 40px;
   height: 40px;
-  background: var(--primary-color);
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .logo-icon img {
-  width: 120%;
-  height: 100%;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 

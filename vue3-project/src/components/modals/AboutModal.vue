@@ -21,7 +21,7 @@
           <div class="intro-section">
             <h3>项目简介</h3>
             <p>
-              小毛毛校园图文社区是一个面向开发者与学习者的开源示例项目，旨在提供从前端到后端的完整实践范本，帮助大家学习现代 Web 应用的架构设计、工程化与业务实现。
+              小毛毛生活社区是一个面向开发者与学习者的开源示例项目，旨在提供从前端到后端的完整实践范本，帮助大家学习现代 Web 应用的架构设计、工程化与业务实现。
             </p>
           </div>
           <div class="author-section">
@@ -105,7 +105,7 @@
           </div>
 
           <div class="about-footer">
-            <p>&copy; 2025 小毛毛校园图文社区. Made with ❤️ by @ZTMYO</p>
+            <p>&copy; 2025 小毛毛生活社区. Made with ❤️ by @ZTMYO</p>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@ const emit = defineEmits(['close'])
 const { lock, unlock } = useScrollLock()
 
 // 静态资源URL
-const logoUrl = new URL('@/assets/imgs/小毛毛.svg', import.meta.url).href
+const logoUrl = new URL('@/assets/imgs/小毛毛.png', import.meta.url).href
 const ztmyoUrl = new URL('@/assets/imgs/ztmyo.png', import.meta.url).href
 const liciUrl = new URL('@/assets/imgs/栗次元.ico', import.meta.url).href
 const xiaRouUrl = new URL('@/assets/imgs/夏柔.ico', import.meta.url).href
@@ -237,18 +237,17 @@ onMounted(() => {
 }
 
 .about-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 104px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-color);
 }
 
 .about-logo img {
-  width: 120%;
-  height: 100%;
+  width: 104px;
+  height: auto;
+  max-height: 40px;
   object-fit: contain;
 }
 

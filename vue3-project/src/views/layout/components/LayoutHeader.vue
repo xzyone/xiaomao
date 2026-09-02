@@ -12,7 +12,7 @@ const route = useRoute()
 const searchHistoryStore = useSearchHistoryStore()
 
 // 静态资源URL
-const logoUrl = new URL('@/assets/imgs/小毛毛.svg', import.meta.url).href
+const logoUrl = new URL('@/assets/imgs/小毛毛.png', import.meta.url).href
 
 const isLargeScreen = ref(window.innerWidth > 695)
 const showSidebar = ref(window.innerWidth > 960)
@@ -263,19 +263,20 @@ header {
 }
 
 .logo {
-    width: 68.32px;
-    height: 32px;
-    color: var(--button-text-color);
-    background: var(--primary-color);
-    border-radius: 999px;
+    width: 96px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 
-img {
-    width: 68.32px;
-    height: 32px;
+.logo img {
+    display: block;
+    width: 96px;
+    height: auto;
+    max-height: 40px;
+    object-fit: contain;
 }
 
 .header-right {

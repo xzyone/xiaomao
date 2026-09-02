@@ -1,11 +1,11 @@
 # Project Structure
 
-This document provides a detailed overview of the directory structure and file organization of the XiaoShiLiu Image & Text Community project.
+This document provides a detailed overview of the directory structure and file organization of the XiaoMao Image & Text Community project.
 
 ## Overall Structure
 
 ```
-XiaoShiLiu Community/
+XiaoMao Community/
 ├── vue3-project/           # Frontend project
 ├── express-project/        # Backend project
 ├── README.md              # Main project documentation

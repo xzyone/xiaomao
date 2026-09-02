@@ -4,7 +4,7 @@
 - **專案名稱**: 小毛毛圖文社區
 - **版本**: v1.3.2
 - **基礎URL**: `http://localhost:3001`
-- **數據庫**: xiaoshiliu (MySQL)
+- **數據庫**: xiaomao (MySQL)
 - **更新時間**: 2026-07-28
 
 ## 通用說明
@@ -109,7 +109,7 @@ Authorization: Bearer <your_jwt_token>
   "data": {
     "user": {
       "id": 1,
-      "user_id": "xiaoshiliu123",
+      "user_id": "xiaomao123",
       "nickname": "小毛毛用户",
       "avatar": "http://example.com/avatar.jpg",
       "bio": "這是我的個人簡介",
@@ -281,7 +281,7 @@ Authorization: Bearer <your_jwt_token>
   "code": 200,
   "message": "驗證碼發送成功，請查收郵箱",
   "data": {
-    "user_id": "xiaoshiliu"
+    "user_id": "xiaomao"
   }
 }
 ```
