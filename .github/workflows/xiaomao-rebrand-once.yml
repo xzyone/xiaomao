@@ -27,7 +27,7 @@ jobs:
           from pathlib import Path
 
           root = Path('.')
-          skip_dirs = {'.git', 'node_modules', 'dist', 'coverage'}
+          skip_dirs = {'.git', '.github', 'node_modules', 'dist', 'coverage'}
           text_exts = {
               '.vue', '.js', '.ts', '.jsx', '.tsx', '.json', '.md', '.html', '.css', '.scss',
               '.sql', '.yml', '.yaml', '.env', '.example', '.txt', '.sh', '.ps1', '.conf'
@@ -53,7 +53,6 @@ jobs:
               new = text
               for old, repl in replacements:
                   new = new.replace(old, repl)
-              # The old PNG logo references become SVG references after the brand rename.
               new = new.replace('@/assets/imgs/小毛毛.png', '@/assets/imgs/小毛毛.svg')
               new = new.replace('src/assets/imgs/小毛毛.png', 'src/assets/imgs/小毛毛.svg')
               if new != text:
@@ -94,7 +93,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          if grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist \
+          if grep -RIn --exclude-dir=.git --exclude-dir=.github --exclude-dir=node_modules --exclude-dir=dist \
             --include='*.vue' --include='*.js' --include='*.ts' --include='*.json' --include='*.md' \
             --include='*.html' --include='*.sql' --include='*.yml' --include='*.yaml' --include='*.txt' \
             -E '小石榴|石榴号' .; then
