@@ -173,7 +173,7 @@ General parameters for interfaces that support pagination:
   "data": {
     "id": 1,
     "user_id": "user_001",
-    "nickname": "Pear毛毛",
+    "nickname": "XiaoMao",
     "avatar": "https://example.com/avatar.jpg",
     "bio": "This is a personal introduction",
     "location": "Beijing",
@@ -348,7 +348,7 @@ General parameters for interfaces that support pagination:
       {
         "id": 1,
         "user_id": "user_001",
-        "nickname": "Pear毛毛",
+        "nickname": "XiaoMao",
         "avatar": "https://example.com/avatar.jpg",
         "bio": "This is a personal introduction",
         "location": "Beijing",
@@ -385,7 +385,7 @@ General parameters for interfaces that support pagination:
   "data": {
     "id": 1,
     "user_id": "user_001",
-    "nickname": "Pear毛毛",
+    "nickname": "XiaoMao",
     "avatar": "https://example.com/avatar.jpg",
     "bio": "This is a personal introduction",
     "location": "Beijing",

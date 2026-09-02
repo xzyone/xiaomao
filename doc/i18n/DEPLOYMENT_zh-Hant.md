@@ -751,7 +751,7 @@ npm run dev
 VITE_API_BASE_URL=http://localhost:3001/api
 
 # 其他前端配置
-VITE_APP_TITLE=Small毛毛Image and Text Community
+VITE_APP_TITLE=XiaoMao Community
 VITE_USE_REAL_API=true
 ```
 
