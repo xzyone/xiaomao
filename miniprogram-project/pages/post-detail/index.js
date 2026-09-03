@@ -1,5 +1,6 @@
 const api = require('../../services/api')
 const { stripHtml, formatDate } = require('../../utils/format')
+const { DEFAULT_AVATAR } = require('../../utils/media')
 
 Page({
   data: {
@@ -28,6 +29,17 @@ Page({
       const result = await api.getComments(this.data.id)
       this.setData({ comments: (result && result.comments) || [] })
     } catch (error) { if (error.error !== 'MINIAPP_READONLY') console.warn('加载评论失败:', error) }
+  },
+  onPostAvatarError() {
+    if (this.data.post && this.data.post.user_avatar !== DEFAULT_AVATAR) {
+      this.setData({ 'post.user_avatar': DEFAULT_AVATAR })
+    }
+  },
+  onCommentAvatarError(event) {
+    const index = Number(event.currentTarget.dataset.index)
+    const comment = this.data.comments[index]
+    if (!comment || comment.user_avatar === DEFAULT_AVATAR) return
+    this.setData({ [`comments[${index}].user_avatar`]: DEFAULT_AVATAR })
   },
   previewImage(event) {
     const current = event.currentTarget.dataset.url
