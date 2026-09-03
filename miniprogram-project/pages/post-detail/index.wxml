@@ -1,29 +1,30 @@
 <view class="detail-page" wx:if="{{post}}">
-  <view wx:if="{{post.type != 2 && displayImages && displayImages.length}}" class="media-stage">
-    <swiper class="media-swiper" indicator-dots="{{displayImages.length > 1}}" circular="{{displayImages.length > 1}}" bindchange="onMediaChange">
+  <view class="post-author-header">
+    <image class="avatar" src="{{post.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load binderror="onPostAvatarError" />
+    <view class="author-copy">
+      <text class="nickname">{{post.nickname || '匿名用户'}}</text>
+      <text class="author-location" wx:if="{{post.location}}">IP属地 · {{post.location}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{post.type != 2 && displayImages && displayImages.length}}" class="media-stage" style="height: {{currentMediaHeight}}rpx;">
+    <swiper class="media-swiper" style="height: {{currentMediaHeight}}rpx;" indicator-dots="{{displayImages.length > 1}}" circular="{{displayImages.length > 1}}" bindchange="onMediaChange">
       <swiper-item wx:for="{{displayImages}}" wx:key="*this">
-        <image class="detail-image" src="{{item}}" mode="aspectFit" lazy-load data-url="{{item}}" bindtap="previewImage" />
+        <image class="detail-image" src="{{item}}" mode="aspectFit" lazy-load data-index="{{index}}" data-url="{{item}}" bindload="onDetailImageLoad" bindtap="previewImage" />
       </swiper-item>
     </swiper>
-    <button wx:if="{{currentImageCanShowOriginal}}" class="original-image-button" catchtap="showOriginalImage">查看原图</button>
+    <button wx:if="{{currentImageCanShowOriginal}}" class="original-image-button" catchtap="showOriginalImage">原图</button>
   </view>
   <video wx:if="{{post.type == 2 && post.video_url && post.poster_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.poster_url}}" controls object-fit="contain" />
   <video wx:elif="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" controls object-fit="contain" />
+
   <view class="detail-content">
-    <view class="author-row">
-      <view class="author-main">
-        <image class="avatar" src="{{post.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load binderror="onPostAvatarError" />
-        <view>
-          <text class="nickname">{{post.nickname || '匿名用户'}}</text>
-          <text class="author-location" wx:if="{{post.location}}">IP属地 · {{post.location}}</text>
-        </view>
-      </view>
-    </view>
     <text class="title">{{post.title}}</text>
     <text class="content">{{contentText}}</text>
     <view class="tag-row" wx:if="{{post.tags && post.tags.length}}"><text wx:for="{{post.tags}}" wx:key="id" class="tag">#{{item.name}}</text></view>
     <text class="date">{{displayDate}} · 浏览 {{post.view_count || 0}}</text>
   </view>
+
   <view wx:if="{{!readonlyMode}}" class="comments-section">
     <text class="section-title">评论 {{post.comment_count || 0}}</text>
     <view wx:for="{{comments}}" wx:key="id" class="comment-item">
