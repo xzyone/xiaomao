@@ -6,9 +6,7 @@
 <p align="center">毛毛的快乐狗生</p>
 <p align="center"><a href="https://mao.kdgq.com">mao.kdgq.com</a></p>
 
-小毛毛是一个自用的图文 / 视频记录网站，用来记录毛毛的日常。项目采用 Vue 3 + Vite 前端、Express 后端和 MySQL 数据库，并针对当前 NAS + 1Panel 的实际部署方式维护。
-
-这个仓库不再保留上游项目的多平台一键部署方案。生产环境只维护一套 Linux/NAS 部署：前端由 1Panel/OpenResty 直接提供静态文件，后端单独运行在 Docker 中，MySQL 使用 1Panel 已有数据库，上传的图片和视频独立存放在仓库之外。
+小毛毛是一个自用的图文 / 视频记录网站，用来记录毛毛的日常。项目采用 Vue 3 + Vite 前端、Express 后端和 MySQL 数据库。
 
 ## 技术栈
 
@@ -22,55 +20,25 @@
 
 ```text
 SSD
-/vol1/1000/docker/1panel/1panel/www/sites/mao/index/
+/
 ├── .git/
 ├── docker-compose.yml
 ├── deploy.sh
 ├── express-project/
 └── vue3-project/
-    └── dist/                      # 1Panel 网站运行目录
+    └── dist/                      # 网站运行目录
 
 HDD
-/vol2/1000/web/data/xiaomao/uploads/
+/uploads/
 ├── images/
 └── videos/
 ```
 
-1Panel 网站目录保持为：
-
-```text
-/www/sites/mao/index
-```
-
-运行目录设置为：
-
-```text
-/vue3-project/dist
-```
-
-后端仅监听本机：
-
-```text
-127.0.0.1:1220 -> container:3001
-```
-
-`/api/` 由 1Panel/OpenResty 反向代理到 `http://127.0.0.1:1220`。
 
 ## Docker 结构
 
-`docker-compose.yml` 只管理后端服务，不再启动前端 Nginx/OpenResty，也不再创建内置 MySQL。
+`docker-compose.yml` 只管理后端服务，后端代码在构建镜像时复制到容器 `/app`，生产环境不把整个 `/app` 绑定到宿主机。只有运行时媒体目录单独持久化：
 
-后端代码在构建镜像时复制到容器 `/app`，生产环境不把整个 `/app` 绑定到宿主机。只有运行时媒体目录单独持久化：
-
-```text
-/vol2/1000/web/data/xiaomao/uploads -> /app/uploads
-```
-
-容器运行身份固定为：
-
-```text
-UID 1000 / GID 1001 = xzy:User
-```
 
 ## 首次部署
 
