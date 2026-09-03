@@ -1,0 +1,11 @@
+<view class="bottom-nav safe-bottom">
+  <view class="nav-item {{current === 'home' ? 'active' : ''}}" bindtap="goHome">
+    <text class="nav-icon">⌂</text>
+    <text>首页</text>
+  </view>
+  <view wx:if="{{!readonlyMode}}" class="publish-button" bindtap="goPublish">＋</view>
+  <view wx:if="{{!readonlyMode}}" class="nav-item {{current === 'profile' ? 'active' : ''}}" bindtap="goProfile">
+    <text class="nav-icon">○</text>
+    <text>我的</text>
+  </view>
+</view>

@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "小毛毛",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "post-card": "/components/post-card/index",
+    "bottom-nav": "/components/bottom-nav/index"
+  }
+}
