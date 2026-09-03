@@ -132,84 +132,32 @@ router.get('/', optionalAuth, async (req, res) => {
     `;
     let queryParams = [status.toString()];
 
-    // 特殊处理推荐频道：热度新鲜度评分前20%的笔记按分数排序
-    if (category === 'recommend') {
-      // 先获取总笔记数计算20%的数量
-      let countQuery = 'SELECT COUNT(*) as total FROM posts WHERE status = ?';
-      let countParams = [status.toString()];
+    // 推荐频道 = 全部分类的已发布内容，按发布时间倒序；其他频道按分类筛选
+    let whereConditions = [];
+    let additionalParams = [];
 
-      if (type) {
-        countQuery += ' AND type = ?';
-        countParams.push(type);
-      }
-      const [totalCountResult] = await pool.execute(countQuery, countParams);
-      const totalPosts = totalCountResult[0].total;
-      const recommendLimit = Math.ceil(totalPosts * 0.2);
-      // 推荐算法：70%热度+30%新鲜度评分，新发布24小时内的笔记获得新鲜度加分，筛选前20%按分数排序
-      let innerWhere = 'p.status = ?';
-      let innerParams = [status.toString()];
-      if (type) {
-        innerWhere += ' AND p.type = ?';
-        innerParams.push(type);
-      }
-      query = `
-        SELECT 
-          p.*, 
-          u.nickname, 
-          u.avatar as user_avatar, 
-          u.user_id as author_account, 
-          u.id as author_auto_id, 
-          u.location, 
-          u.verified,
-          c.name as category
-        FROM (
-          SELECT 
-            p.*,
-            (p.view_count * 0.7 + (24 - LEAST(TIMESTAMPDIFF(HOUR, p.created_at, NOW()), 24)) * 0.3) as score
-          FROM posts p 
-          WHERE ${innerWhere}
-          ORDER BY score DESC
-          LIMIT ?
-        ) p
-        LEFT JOIN users u ON p.user_id = u.id 
-        LEFT JOIN categories c ON p.category_id = c.id 
-        ORDER BY p.score DESC
-        LIMIT ? OFFSET ? 
-      `;
-
-      // 参数设置
-      queryParams = [
-        ...innerParams,
-        recommendLimit.toString(),
-        limit.toString(),
-        offset.toString()
-      ];
-    } else {
-      let whereConditions = [];
-      let additionalParams = [];
-
-      if (category) {
-        whereConditions.push('p.category_id = ?');
-        additionalParams.push(category);
-      }
-
-      if (userId) {
-        whereConditions.push('p.user_id = ?');
-        additionalParams.push(userId);
-      }
-
-      if (type) {
-        whereConditions.push('p.type = ?');
-        additionalParams.push(type);
-      }
-
-      if (whereConditions.length > 0) {
-        query += ` AND ${whereConditions.join(' AND ')}`;
-      }
-
-      query += ` ORDER BY p.created_at DESC LIMIT ? OFFSET ?`;
-      queryParams = [status.toString(), ...additionalParams, limit.toString(), offset.toString()];
+    if (category && category !== 'recommend') {
+      whereConditions.push('p.category_id = ?');
+      additionalParams.push(category);
     }
+
+    if (userId) {
+      whereConditions.push('p.user_id = ?');
+      additionalParams.push(userId);
+    }
+
+    if (type) {
+      whereConditions.push('p.type = ?');
+      additionalParams.push(type);
+    }
+
+    if (whereConditions.length > 0) {
+      query += ` AND ${whereConditions.join(' AND ')}`;
+    }
+
+    query += ` ORDER BY p.created_at DESC LIMIT ? OFFSET ?`;
+    queryParams = [status.toString(), ...additionalParams, limit.toString(), offset.toString()];
+
     const [rows] = await pool.execute(query, queryParams);
 
 
@@ -279,49 +227,32 @@ router.get('/', optionalAuth, async (req, res) => {
       }
     }
 
-    // 获取总数
-    let total;
-    if (category === 'recommend') {
-      // 推荐频道的总数限制为总笔记数的20%
-      let countQuery = 'SELECT COUNT(*) as total FROM posts WHERE status = ?';
-      let countParams = [status.toString()];
+    // 获取总数；推荐频道统计全部分类，其他频道按分类统计
+    let countQuery = 'SELECT COUNT(*) as total FROM posts p WHERE p.status = ?';
+    let countParams = [status.toString()];
+    const countWhereConditions = [];
 
-      if (type) {
-        countQuery += ' AND type = ?';
-        countParams.push(type);
-      }
-
-      const [totalCountResult] = await pool.execute(countQuery, countParams);
-      const totalPosts = totalCountResult[0].total;
-      total = Math.ceil(totalPosts * 0.2);
-    } else {
-      let countQuery = 'SELECT COUNT(*) as total FROM posts WHERE status = ?';
-      let countParams = [status.toString()];
-      let countWhereConditions = [];
-
-      if (category) {
-        countQuery = 'SELECT COUNT(*) as total FROM posts p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = ?';
-        countWhereConditions.push('p.category_id = ?');
-        countParams.push(category);
-      }
-
-      if (userId) {
-        countWhereConditions.push('user_id = ?');
-        countParams.push(userId);
-      }
-
-      if (type) {
-        countWhereConditions.push('type = ?');
-        countParams.push(type);
-      }
-
-      if (countWhereConditions.length > 0) {
-        countQuery += ` AND ${countWhereConditions.join(' AND ')}`;
-      }
-
-      const [countResult] = await pool.execute(countQuery, countParams);
-      total = countResult[0].total;
+    if (category && category !== 'recommend') {
+      countWhereConditions.push('p.category_id = ?');
+      countParams.push(category);
     }
+
+    if (userId) {
+      countWhereConditions.push('p.user_id = ?');
+      countParams.push(userId);
+    }
+
+    if (type) {
+      countWhereConditions.push('p.type = ?');
+      countParams.push(type);
+    }
+
+    if (countWhereConditions.length > 0) {
+      countQuery += ` AND ${countWhereConditions.join(' AND ')}`;
+    }
+
+    const [countResult] = await pool.execute(countQuery, countParams);
+    const total = countResult[0].total;
 
     res.json({
       code: RESPONSE_CODES.SUCCESS,
