@@ -1,16 +1,11 @@
 const api = require('../../services/api')
 const { clearSession } = require('../../services/request')
-const { apiBaseUrl } = require('../../config')
-const { getServerOrigin } = require('../../utils/media')
-
-const serverOrigin = getServerOrigin(apiBaseUrl)
-const defaultAvatarUrl = serverOrigin ? `${serverOrigin}/android-icon-192x192.png` : ''
+const { DEFAULT_AVATAR } = require('../../utils/media')
 
 Page({
   data: {
     user: null,
-    avatarUrl: '',
-    defaultAvatarUrl,
+    avatarUrl: DEFAULT_AVATAR,
     readonlyMode: false,
     loading: true
   },
@@ -21,30 +16,26 @@ Page({
 
     const token = wx.getStorageSync('token')
     if (!token) {
-      this.setData({ user: null, avatarUrl: '', readonlyMode: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, readonlyMode: false, loading: false })
       return
     }
 
     const sessionState = await app.validateSession(true)
     if (sessionState === false) {
-      this.setData({ user: null, avatarUrl: '', readonlyMode: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, readonlyMode: false, loading: false })
       return
     }
 
     const user = app.globalData.user || wx.getStorageSync('user') || null
     this.setData({
       user,
-      avatarUrl: user ? (user.avatar || defaultAvatarUrl) : '',
+      avatarUrl: user ? (user.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR,
       readonlyMode: false,
       loading: false
     })
   },
   onAvatarError() {
-    if (this.data.avatarUrl && this.data.avatarUrl !== this.data.defaultAvatarUrl && this.data.defaultAvatarUrl) {
-      this.setData({ avatarUrl: this.data.defaultAvatarUrl })
-      return
-    }
-    this.setData({ avatarUrl: '' })
+    if (this.data.avatarUrl !== DEFAULT_AVATAR) this.setData({ avatarUrl: DEFAULT_AVATAR })
   },
   goLogin() { wx.navigateTo({ url: '/pages/login/index' }) },
   async logout() {
@@ -57,7 +48,7 @@ Page({
       const app = getApp()
       app.globalData.sessionValid = false
       app.globalData.lastSessionCheckAt = 0
-      this.setData({ user: null, avatarUrl: '' })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR })
     }
   }
 })
