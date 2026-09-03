@@ -3,9 +3,11 @@ set -eu
 
 REPO_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 FRONTEND_DIR="$REPO_DIR/vue3-project"
-UPLOAD_DIR="${XIAOMAO_UPLOAD_DIR:-/vol2/1000/web/data/xiaomao/uploads}"
 DEFAULT_PROXY="http://192.168.31.31:20172"
 PROXY_URL="${XIAOMAO_PROXY-$DEFAULT_PROXY}"
+UPLOAD_DIR=""
+RUN_UID="1000"
+RUN_GID="1000"
 
 cd "$REPO_DIR"
 
@@ -14,20 +16,17 @@ usage() {
 XiaoMao Linux/NAS deployment helper
 
 Usage:
-  ./deploy.sh deploy    Build frontend and rebuild/start backend (default)
-  ./deploy.sh update    git pull --ff-only, then deploy
-  ./deploy.sh frontend  Build Vue frontend only
-  ./deploy.sh backend   Rebuild/start backend only
-  ./deploy.sh restart   Restart backend container
-  ./deploy.sh stop      Stop backend container
-  ./deploy.sh logs      Follow backend logs
-  ./deploy.sh status    Show compose status
+  sh deploy.sh deploy    Build frontend and rebuild/start backend (default)
+  sh deploy.sh update    git pull --ff-only, then deploy
+  sh deploy.sh frontend  Build Vue frontend only
+  sh deploy.sh backend   Rebuild/start backend only
+  sh deploy.sh restart   Restart backend container
+  sh deploy.sh stop      Stop backend container
+  sh deploy.sh logs      Follow backend logs
+  sh deploy.sh status    Show compose status
 
-Default build proxy:
-  http://192.168.31.31:20172
-
-Override it with XIAOMAO_PROXY, or disable it for one run with:
-  XIAOMAO_PROXY= ./deploy.sh deploy
+Override the build proxy with XIAOMAO_PROXY, or disable it for one run with:
+  XIAOMAO_PROXY= sh deploy.sh deploy
 
 This script never runs git stash, git clean, docker compose down -v, or volume prune.
 EOF
@@ -53,9 +52,35 @@ check_env() {
   fi
 }
 
+read_env_value() {
+  key="$1"
+  value="$(sed -n "s/^${key}=//p" "$REPO_DIR/.env" | tail -n 1 | tr -d '\r')"
+
+  case "$value" in
+    \"*\") value="${value#\"}"; value="${value%\"}" ;;
+    \'*\') value="${value#\'}"; value="${value%\'}" ;;
+  esac
+
+  printf '%s' "$value"
+}
+
+load_runtime_config() {
+  UPLOAD_DIR="${XIAOMAO_UPLOAD_DIR:-$(read_env_value XIAOMAO_UPLOAD_DIR)}"
+  RUN_UID="${XIAOMAO_UID:-$(read_env_value XIAOMAO_UID)}"
+  RUN_GID="${XIAOMAO_GID:-$(read_env_value XIAOMAO_GID)}"
+
+  [ -n "$RUN_UID" ] || RUN_UID="1000"
+  [ -n "$RUN_GID" ] || RUN_GID="1000"
+
+  if [ -z "$UPLOAD_DIR" ]; then
+    echo "XIAOMAO_UPLOAD_DIR is not set in .env." >&2
+    exit 1
+  fi
+}
+
 prepare_uploads() {
   mkdir -p "$UPLOAD_DIR/images" "$UPLOAD_DIR/videos"
-  chown 1000:1001 "$UPLOAD_DIR" "$UPLOAD_DIR/images" "$UPLOAD_DIR/videos" 2>/dev/null || true
+  chown "$RUN_UID:$RUN_GID" "$UPLOAD_DIR" "$UPLOAD_DIR/images" "$UPLOAD_DIR/videos" 2>/dev/null || true
   chmod 2770 "$UPLOAD_DIR" "$UPLOAD_DIR/images" "$UPLOAD_DIR/videos" 2>/dev/null || true
 }
 
@@ -81,7 +106,6 @@ build_frontend() {
     node:18-alpine \
     sh -c 'npm ci --no-audit --no-fund && npm run build'
 
-  chown -R 1000:1001 "$FRONTEND_DIR/dist" 2>/dev/null || true
   echo "Frontend ready: $FRONTEND_DIR/dist"
 }
 
@@ -118,6 +142,7 @@ update_repo() {
 
 deploy_all() {
   check_env
+  load_runtime_config
   prepare_uploads
   build_frontend
   build_backend
@@ -138,6 +163,7 @@ case "${1:-deploy}" in
     ;;
   backend)
     check_env
+    load_runtime_config
     prepare_uploads
     build_backend
     ;;
