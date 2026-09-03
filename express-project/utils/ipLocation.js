@@ -1,57 +1,118 @@
 const axios = require('axios');
 const config = require('../config/config');
 
+function normalizeLocation(value) {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  return value
+    .replace('维吾尔自治区', '')
+    .replace('壮族自治区', '')
+    .replace('回族自治区', '')
+    .replace('特别行政区', '')
+    .replace('自治区', '')
+    .replace('省', '')
+    .replace('市', '')
+    .trim();
+}
+
+function isPrivateIP(ip) {
+  if (!ip || ip === '127.0.0.1' || ip === '::1') {
+    return true;
+  }
+
+  if (ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('169.254.')) {
+    return true;
+  }
+
+  if (ip.startsWith('172.')) {
+    const secondOctet = Number(ip.split('.')[1]);
+    if (secondOctet >= 16 && secondOctet <= 31) {
+      return true;
+    }
+  }
+
+  const lower = ip.toLowerCase();
+  return lower.startsWith('fc') || lower.startsWith('fd') || lower.startsWith('fe80:');
+}
+
+async function queryPrimary(ip) {
+  const response = await axios.get(config.ipLocation.primaryApi, {
+    params: { ip },
+    timeout: config.ipLocation.primaryTimeout
+  });
+
+  const locationData = response.data && response.data.code === 200
+    ? response.data.data
+    : null;
+
+  if (!locationData) {
+    return null;
+  }
+
+  return normalizeLocation(
+    locationData.subdivisions ||
+    locationData.region ||
+    locationData.province
+  );
+}
+
+async function queryBackup(ip) {
+  const baseUrl = config.ipLocation.backupApi.replace(/\/+$/, '');
+  const response = await axios.get(`${baseUrl}/${encodeURIComponent(ip)}`, {
+    params: {
+      lang: 'zh-CN',
+      fields: 'success,country,country_code,region,city,message'
+    },
+    timeout: config.ipLocation.backupTimeout
+  });
+
+  const data = response.data;
+  if (!data || data.success !== true) {
+    return null;
+  }
+
+  // 国内显示省级属地；港澳台和海外显示地区/国家。
+  if (data.country_code === 'CN') {
+    return normalizeLocation(data.region || data.city || data.country);
+  }
+
+  return normalizeLocation(data.country || data.region || data.city);
+}
+
 /**
  * 获取IP属地信息
  * @param {string} ip - IP地址
- * @returns {Promise<string>} 返回省份信息
+ * @returns {Promise<string>} 返回属地信息
  */
 async function getIPLocation(ip) {
-  try {
-    // 如果是本地IP，返回默认值
-    if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
-      return '本地';
-    }
-
-    // 调用IP属地API
-    const response = await axios.get(config.ipLocation.primaryApi, {
-      params: {
-        ip: ip
-      },
-      timeout: config.ipLocation.primaryTimeout
-    });
-
-    if (response.data && response.data.code === 200 && response.data.data) {
-      const locationData = response.data.data;
-      // 根据API返回的数据结构提取省份信息
-      if (locationData.subdivisions) {
-        return locationData.subdivisions.replace('省', '').replace('壮族自治区', '').replace('回族自治区', '').replace('回族自治区', '').replace('特别行政区', '').replace('市', '').replace('维吾尔自治区', '').replace('自治区', '');
-      } else if (locationData.region) {
-        return locationData.region.replace('省', '').replace('壮族自治区', '').replace('回族自治区', '').replace('回族自治区', '').replace('特别行政区', '').replace('市', '').replace('维吾尔自治区', '').replace('自治区', '');
-      }
-    }
-
-    // 如果主接口返回未知，尝试备用接口
-    try {
-      const backupResponse = await axios.get(config.ipLocation.backupApi, {
-        params: {
-          ip: ip
-        },
-        timeout: config.ipLocation.backupTimeout
-      });
-
-      if (backupResponse.data && backupResponse.data.code === 200 && backupResponse.data.data && backupResponse.data.data.province) {
-        return backupResponse.data.data.province.replace('省', '').replace('壮族自治区', '').replace('回族自治区', '').replace('回族自治区', '').replace('特别行政区', '').replace('市', '').replace('维吾尔自治区', '').replace('自治区', '');
-      }
-    } catch (backupError) {
-      console.error('备用IP属地接口调用失败:', backupError.message);
-    }
-
-    return '未知';
-  } catch (error) {
-    console.error('获取IP属地失败:', error.message);
-    return '未知';
+  if (isPrivateIP(ip)) {
+    return '本地';
   }
+
+  try {
+    const primaryLocation = await queryPrimary(ip);
+    if (primaryLocation) {
+      return primaryLocation;
+    }
+  } catch (error) {
+    const status = error.response && error.response.status;
+    console.warn(`主IP属地接口调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
+  }
+
+  try {
+    const backupLocation = await queryBackup(ip);
+    if (backupLocation) {
+      return backupLocation;
+    }
+  } catch (error) {
+    const status = error.response && error.response.status;
+    console.warn(`备用IP属地接口调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
+  }
+
+  console.error('IP属地查询失败: 主备接口均未返回有效结果');
+  return '未知';
 }
 
 /**
@@ -67,17 +128,19 @@ function getRealIP(req) {
     (req.connection.socket ? req.connection.socket.remoteAddress : null) ||
     req.ip;
 
-  // 处理IPv4映射的IPv6地址格式，去掉::ffff:前缀
-  if (ip && typeof ip === 'string' && ip.startsWith('::ffff:')) {
-    ip = ip.substring(7); // 去掉'::ffff:'前缀
+  if (Array.isArray(ip)) {
+    ip = ip[0];
   }
 
-  // 如果是x-forwarded-for头，可能包含多个IP，取第一个
   if (ip && typeof ip === 'string' && ip.includes(',')) {
     ip = ip.split(',')[0].trim();
   }
 
-  return ip;
+  if (ip && typeof ip === 'string' && ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+
+  return typeof ip === 'string' ? ip.trim() : ip;
 }
 
 module.exports = {
