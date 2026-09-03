@@ -1,0 +1,18 @@
+<view class="post-card" bindtap="openPost">
+  <view class="media-box">
+    <image wx:if="{{post.images && post.images.length}}" class="cover" src="{{post.images[0]}}" mode="widthFix" lazy-load />
+    <view wx:else class="media-placeholder">{{post.type === 2 ? '视频' : '小毛毛'}}</view>
+    <view wx:if="{{post.type === 2}}" class="video-badge">▶</view>
+  </view>
+  <view class="post-body">
+    <text class="post-title">{{post.title}}</text>
+    <view class="post-meta">
+      <view class="author-wrap">
+        <image wx:if="{{post.user_avatar}}" class="avatar" src="{{post.user_avatar}}" mode="aspectFill" />
+        <view wx:else class="avatar avatar-empty"></view>
+        <text class="author">{{post.nickname || '匿名用户'}}</text>
+      </view>
+      <view class="like-wrap"><text>♡</text><text>{{post.like_count || 0}}</text></view>
+    </view>
+  </view>
+</view>
