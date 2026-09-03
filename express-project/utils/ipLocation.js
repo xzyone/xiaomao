@@ -37,35 +37,31 @@ function isPrivateIP(ip) {
   return lower.startsWith('fc') || lower.startsWith('fd') || lower.startsWith('fe80:');
 }
 
-async function queryPrimary(ip) {
-  const response = await axios.get(config.ipLocation.primaryApi, {
-    params: { ip },
-    timeout: config.ipLocation.primaryTimeout
-  });
+function specialRegionName(countryCode) {
+  const names = {
+    HK: '香港',
+    MO: '澳门',
+    TW: '台湾'
+  };
+  return names[countryCode] || null;
+}
 
-  const locationData = response.data && response.data.code === 200
-    ? response.data.data
-    : null;
-
-  if (!locationData) {
+function pickLocalizedName(names) {
+  if (!names || typeof names !== 'object') {
     return null;
   }
 
-  return normalizeLocation(
-    locationData.subdivisions ||
-    locationData.region ||
-    locationData.province
-  );
+  return names['zh-CN'] || names.zh || names.en || Object.values(names).find(Boolean) || null;
 }
 
-async function queryBackup(ip) {
-  const baseUrl = config.ipLocation.backupApi.replace(/\/+$/, '');
+async function queryPrimary(ip) {
+  const baseUrl = config.ipLocation.primaryApi.replace(/\/+$/, '');
   const response = await axios.get(`${baseUrl}/${encodeURIComponent(ip)}`, {
     params: {
       lang: 'zh-CN',
       fields: 'success,country,country_code,region,city,message'
     },
-    timeout: config.ipLocation.backupTimeout
+    timeout: config.ipLocation.primaryTimeout
   });
 
   const data = response.data;
@@ -73,12 +69,47 @@ async function queryBackup(ip) {
     return null;
   }
 
-  // 国内显示省级属地；港澳台和海外显示地区/国家。
+  const specialRegion = specialRegionName(data.country_code);
+  if (specialRegion) {
+    return specialRegion;
+  }
+
   if (data.country_code === 'CN') {
     return normalizeLocation(data.region || data.city || data.country);
   }
 
   return normalizeLocation(data.country || data.region || data.city);
+}
+
+async function queryBackup(ip) {
+  const baseUrl = config.ipLocation.backupApi.replace(/\/+$/, '');
+  const response = await axios.get(`${baseUrl}/${encodeURIComponent(ip)}`, {
+    timeout: config.ipLocation.backupTimeout
+  });
+
+  const data = response.data;
+  const geo = data && data.geo_city;
+  if (!geo) {
+    return null;
+  }
+
+  const countryCode = geo.country && geo.country.iso_code;
+  const specialRegion = specialRegionName(countryCode);
+  if (specialRegion) {
+    return specialRegion;
+  }
+
+  const country = pickLocalizedName(geo.country && geo.country.names);
+  const city = pickLocalizedName(geo.city && geo.city.names);
+  const subdivision = Array.isArray(geo.subdivisions) && geo.subdivisions.length > 0
+    ? pickLocalizedName(geo.subdivisions[0].names)
+    : null;
+
+  if (countryCode === 'CN') {
+    return normalizeLocation(subdivision || city || country);
+  }
+
+  return normalizeLocation(country || subdivision || city);
 }
 
 /**
@@ -96,9 +127,10 @@ async function getIPLocation(ip) {
     if (primaryLocation) {
       return primaryLocation;
     }
+    console.warn('主IP属地接口 ipwho.is 未返回有效属地');
   } catch (error) {
     const status = error.response && error.response.status;
-    console.warn(`主IP属地接口调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
+    console.warn(`主IP属地接口 ipwho.is 调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
   }
 
   try {
@@ -106,9 +138,10 @@ async function getIPLocation(ip) {
     if (backupLocation) {
       return backupLocation;
     }
+    console.warn('备用IP属地接口 ipaddress.you 未返回有效属地');
   } catch (error) {
     const status = error.response && error.response.status;
-    console.warn(`备用IP属地接口调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
+    console.warn(`备用IP属地接口 ipaddress.you 调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
   }
 
   console.error('IP属地查询失败: 主备接口均未返回有效结果');
