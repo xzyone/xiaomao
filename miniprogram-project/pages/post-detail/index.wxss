@@ -25,4 +25,5 @@
 .no-comments, .loading-page { padding: 100rpx 0; text-align: center; color: #aaa; }
 .comment-bar { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; min-height: 108rpx; padding: 16rpx 24rpx; display: flex; gap: 16rpx; align-items: center; background: #fff; border-top: 1rpx solid #eee; }
 .comment-input { flex: 1; height: 70rpx; padding: 0 24rpx; border-radius: 35rpx; background: #f7f7f7; font-size: 26rpx; }
-.send-button { width: 120rpx; height: 68rpx; line-height: 68rpx; margin: 0; padding: 0; border-radius: 34rpx; background: #ff2442; color: #fff; font-size: 25rpx; }
+.send-button { width: 120rpx; height: 68rpx; margin: 0; padding: 0; border-radius: 34rpx; background: #ff2442; color: #fff; font-size: 25rpx; display: flex; align-items: center; justify-content: center; line-height: 1; box-sizing: border-box; }
+.send-button::after { border: none; }

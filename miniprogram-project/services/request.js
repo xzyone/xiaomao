@@ -1,7 +1,29 @@
 const { apiBaseUrl } = require('../config')
 
+let lastUnauthorizedNoticeAt = 0
+
 function getToken() {
   return wx.getStorageSync('token') || ''
+}
+
+function clearSession() {
+  wx.removeStorageSync('token')
+  wx.removeStorageSync('refresh_token')
+  wx.removeStorageSync('user')
+
+  try {
+    const app = getApp()
+    if (app && app.globalData) app.globalData.user = null
+  } catch (error) {}
+}
+
+function handleUnauthorized() {
+  clearSession()
+
+  const now = Date.now()
+  if (now - lastUnauthorizedNoticeAt < 2000) return
+  lastUnauthorizedNoticeAt = now
+  wx.showToast({ title: '登录已失效，请重新登录', icon: 'none' })
 }
 
 function buildHeaders(extra = {}) {
@@ -28,6 +50,7 @@ function request({ url, method = 'GET', data, header = {} }) {
           resolve(body)
           return
         }
+        if (res.statusCode === 401) handleUnauthorized()
         const error = new Error(body.message || `请求失败 (${res.statusCode})`)
         error.statusCode = res.statusCode
         error.code = body.code
@@ -58,6 +81,7 @@ function uploadFile({ url, filePath, name = 'file', formData = {} }) {
           resolve(body)
           return
         }
+        if (res.statusCode === 401) handleUnauthorized()
         const requestError = new Error(body.message || `上传失败 (${res.statusCode})`)
         requestError.statusCode = res.statusCode
         requestError.error = body.error
@@ -68,4 +92,4 @@ function uploadFile({ url, filePath, name = 'file', formData = {} }) {
   })
 }
 
-module.exports = { request, uploadFile, getToken }
+module.exports = { request, uploadFile, getToken, clearSession }

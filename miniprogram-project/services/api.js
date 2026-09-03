@@ -41,6 +41,10 @@ async function login(userId, password) {
   return { ...result, user: normalizeUser(result.user, apiBaseUrl) }
 }
 
+async function logout() {
+  return unwrap(await request({ url: '/auth/logout', method: 'POST' }))
+}
+
 async function getCurrentUser() {
   return normalizeUser(unwrap(await request({ url: '/auth/me' })), apiBaseUrl)
 }
@@ -71,6 +75,7 @@ module.exports = {
   getCategories,
   getComments,
   login,
+  logout,
   getCurrentUser,
   createComment,
   createPost,

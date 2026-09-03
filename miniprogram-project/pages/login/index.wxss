@@ -1,10 +1,13 @@
-.login-page { min-height: 100vh; padding: 110rpx 46rpx; background: #fff; }
-.login-brand { margin-bottom: 64rpx; }
-.logo-text { display: block; font-size: 54rpx; font-weight: 900; color: #222; }
+.login-page { min-height: 100vh; padding: 72rpx 46rpx 70rpx; box-sizing: border-box; background: #fff; }
+.login-brand { margin-bottom: 52rpx; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.brand-logo { width: 144rpx; height: 144rpx; margin-bottom: 24rpx; border-radius: 36rpx; background: #f7f7f7; }
+.brand-logo-fallback { display: flex; align-items: center; justify-content: center; background: #ff2442; color: #fff; font-size: 58rpx; font-weight: 800; }
+.logo-text { display: block; font-size: 48rpx; font-weight: 900; color: #222; }
 .subtitle { display: block; margin-top: 10rpx; color: #999; font-size: 25rpx; }
-.form-card { padding-top: 8rpx; }
+.form-card { padding-top: 4rpx; }
 .label { display: block; margin-bottom: 12rpx; font-size: 25rpx; font-weight: 600; }
 .label.second { margin-top: 34rpx; }
-.input { height: 88rpx; padding: 0 26rpx; border-radius: 16rpx; background: #f7f7f7; font-size: 28rpx; }
-.login-button { margin-top: 48rpx; height: 88rpx; line-height: 88rpx; border-radius: 44rpx; background: #ff2442; color: #fff; font-size: 29rpx; font-weight: 700; }
-.hint { display: block; margin-top: 28rpx; text-align: center; color: #aaa; font-size: 22rpx; line-height: 1.6; }
+.input { height: 88rpx; padding: 0 26rpx; border-radius: 16rpx; background: #f7f7f7; font-size: 28rpx; box-sizing: border-box; }
+.login-button { width: 62%; margin: 48rpx auto 0; height: 88rpx; padding: 0; border-radius: 44rpx; background: #ff2442; color: #fff; font-size: 29rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; box-sizing: border-box; }
+.login-button::after { border: none; }
+.hint { display: block; margin-top: 26rpx; text-align: center; color: #aaa; font-size: 22rpx; line-height: 1.6; }

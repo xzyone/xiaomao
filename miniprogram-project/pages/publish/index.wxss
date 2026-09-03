@@ -22,4 +22,5 @@
 .setting-value { color: #999; }
 .tags-row { gap: 20rpx; }
 .tags-input { flex: 1; text-align: right; font-size: 25rpx; }
-.publish-button { margin-top: 48rpx; height: 88rpx; line-height: 88rpx; border-radius: 44rpx; background: #ff2442; color: #fff; font-size: 29rpx; font-weight: 700; }
+.publish-button { width: 70%; margin: 48rpx auto 0; height: 88rpx; padding: 0; border-radius: 44rpx; background: #ff2442; color: #fff; font-size: 29rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; box-sizing: border-box; }
+.publish-button::after { border: none; }
