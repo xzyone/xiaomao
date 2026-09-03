@@ -1,4 +1,5 @@
 const ABSOLUTE_URL_RE = /^[a-z][a-z\d+.-]*:/i
+const DEFAULT_AVATAR = '/assets/avatar.png'
 
 function getServerOrigin(apiBaseUrl = '') {
   const match = String(apiBaseUrl).trim().match(/^(https?:\/\/[^/]+)/i)
@@ -40,6 +41,7 @@ function normalizePost(post, apiBaseUrl) {
     ? post.images.map(image => toAbsoluteMediaUrl(image, apiBaseUrl))
     : []
   const coverUrl = toAbsoluteMediaUrl(post.cover_url, apiBaseUrl)
+  const avatarUrl = toAbsoluteMediaUrl(post.user_avatar, apiBaseUrl)
 
   return {
     ...post,
@@ -48,7 +50,7 @@ function normalizePost(post, apiBaseUrl) {
     video_url: toAbsoluteMediaUrl(post.video_url, apiBaseUrl),
     cover_url: coverUrl,
     poster_url: coverUrl || images[0] || '',
-    user_avatar: toAbsoluteMediaUrl(post.user_avatar, apiBaseUrl),
+    user_avatar: avatarUrl || DEFAULT_AVATAR,
     videos: Array.isArray(post.videos)
       ? post.videos.map(video => normalizeVideo(video, apiBaseUrl))
       : post.videos
@@ -57,9 +59,10 @@ function normalizePost(post, apiBaseUrl) {
 
 function normalizeComment(comment, apiBaseUrl) {
   if (!comment || typeof comment !== 'object') return comment
+  const avatarUrl = toAbsoluteMediaUrl(comment.user_avatar, apiBaseUrl)
   return {
     ...comment,
-    user_avatar: toAbsoluteMediaUrl(comment.user_avatar, apiBaseUrl),
+    user_avatar: avatarUrl || DEFAULT_AVATAR,
     replies: Array.isArray(comment.replies)
       ? comment.replies.map(reply => normalizeComment(reply, apiBaseUrl))
       : comment.replies
@@ -68,13 +71,15 @@ function normalizeComment(comment, apiBaseUrl) {
 
 function normalizeUser(user, apiBaseUrl) {
   if (!user || typeof user !== 'object') return user
+  const avatarUrl = toAbsoluteMediaUrl(user.avatar, apiBaseUrl)
   return {
     ...user,
-    avatar: toAbsoluteMediaUrl(user.avatar, apiBaseUrl)
+    avatar: avatarUrl || DEFAULT_AVATAR
   }
 }
 
 module.exports = {
+  DEFAULT_AVATAR,
   getServerOrigin,
   toAbsoluteMediaUrl,
   normalizePost,
