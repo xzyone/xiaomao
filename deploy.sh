@@ -4,6 +4,8 @@ set -eu
 REPO_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 FRONTEND_DIR="$REPO_DIR/vue3-project"
 UPLOAD_DIR="${XIAOMAO_UPLOAD_DIR:-/vol2/1000/web/data/xiaomao/uploads}"
+DEFAULT_PROXY="http://192.168.31.31:20172"
+PROXY_URL="${XIAOMAO_PROXY-$DEFAULT_PROXY}"
 
 cd "$REPO_DIR"
 
@@ -20,6 +22,12 @@ Usage:
   ./deploy.sh stop      Stop backend container
   ./deploy.sh logs      Follow backend logs
   ./deploy.sh status    Show compose status
+
+Default build proxy:
+  http://192.168.31.31:20172
+
+Override it with XIAOMAO_PROXY, or disable it for one run with:
+  XIAOMAO_PROXY= ./deploy.sh deploy
 
 This script never runs git stash, git clean, docker compose down -v, or volume prune.
 EOF
@@ -51,13 +59,23 @@ prepare_uploads() {
   chmod 2770 "$UPLOAD_DIR" "$UPLOAD_DIR/images" "$UPLOAD_DIR/videos" 2>/dev/null || true
 }
 
+show_proxy() {
+  if [ -n "$PROXY_URL" ]; then
+    echo "Build proxy: $PROXY_URL"
+  else
+    echo "Build proxy: disabled"
+  fi
+}
+
 build_frontend() {
   echo "Building frontend..."
+  show_proxy
+
   docker run --rm \
-    -e HTTP_PROXY="${HTTP_PROXY:-}" \
-    -e HTTPS_PROXY="${HTTPS_PROXY:-}" \
-    -e http_proxy="${http_proxy:-${HTTP_PROXY:-}}" \
-    -e https_proxy="${https_proxy:-${HTTPS_PROXY:-}}" \
+    -e HTTP_PROXY="$PROXY_URL" \
+    -e HTTPS_PROXY="$PROXY_URL" \
+    -e http_proxy="$PROXY_URL" \
+    -e https_proxy="$PROXY_URL" \
     -v "$FRONTEND_DIR:/app" \
     -w /app \
     node:18-alpine \
@@ -69,7 +87,15 @@ build_frontend() {
 
 build_backend() {
   echo "Building backend..."
-  docker compose build backend
+  show_proxy
+
+  docker compose build \
+    --build-arg HTTP_PROXY="$PROXY_URL" \
+    --build-arg HTTPS_PROXY="$PROXY_URL" \
+    --build-arg http_proxy="$PROXY_URL" \
+    --build-arg https_proxy="$PROXY_URL" \
+    backend
+
   docker compose up -d backend
   echo "Backend ready: http://127.0.0.1:1220"
 }
@@ -81,7 +107,13 @@ update_repo() {
     exit 1
   fi
 
-  git pull --ff-only
+  if [ -n "$PROXY_URL" ]; then
+    HTTP_PROXY="$PROXY_URL" HTTPS_PROXY="$PROXY_URL" \
+      http_proxy="$PROXY_URL" https_proxy="$PROXY_URL" \
+      git pull --ff-only
+  else
+    git pull --ff-only
+  fi
 }
 
 deploy_all() {
