@@ -1,0 +1,41 @@
+<view class="detail-page" wx:if="{{post}}">
+  <swiper wx:if="{{post.type != 2 && post.images && post.images.length}}" class="media-swiper" indicator-dots="{{post.images.length > 1}}" circular="{{post.images.length > 1}}">
+    <swiper-item wx:for="{{post.images}}" wx:key="*this">
+      <image class="detail-image" src="{{item}}" mode="aspectFit" data-url="{{item}}" bindtap="previewImage" />
+    </swiper-item>
+  </swiper>
+  <video wx:if="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.cover_url || (post.images && post.images[0])}}" controls object-fit="contain" />
+  <view class="detail-content">
+    <view class="author-row">
+      <view class="author-main">
+        <image wx:if="{{post.user_avatar}}" class="avatar" src="{{post.user_avatar}}" mode="aspectFill" />
+        <view wx:else class="avatar avatar-empty"></view>
+        <view>
+          <text class="nickname">{{post.nickname || '匿名用户'}}</text>
+          <text class="author-location" wx:if="{{post.location}}">IP属地 · {{post.location}}</text>
+        </view>
+      </view>
+    </view>
+    <text class="title">{{post.title}}</text>
+    <text class="content">{{contentText}}</text>
+    <view class="tag-row" wx:if="{{post.tags && post.tags.length}}"><text wx:for="{{post.tags}}" wx:key="id" class="tag">#{{item.name}}</text></view>
+    <text class="date">{{displayDate}} · 浏览 {{post.view_count || 0}}</text>
+  </view>
+  <view wx:if="{{!readonlyMode}}" class="comments-section">
+    <text class="section-title">评论 {{post.comment_count || 0}}</text>
+    <view wx:for="{{comments}}" wx:key="id" class="comment-item">
+      <image wx:if="{{item.user_avatar}}" class="comment-avatar" src="{{item.user_avatar}}" mode="aspectFill" />
+      <view class="comment-body">
+        <text class="comment-user">{{item.nickname || '匿名用户'}}</text>
+        <text class="comment-content">{{item.content}}</text>
+        <text class="comment-meta">{{item.user_location ? 'IP属地 · ' + item.user_location : ''}}</text>
+      </view>
+    </view>
+    <view wx:if="{{!comments.length}}" class="no-comments">还没有评论</view>
+  </view>
+  <view wx:if="{{!readonlyMode}}" class="comment-bar safe-bottom">
+    <input class="comment-input" value="{{commentText}}" placeholder="{{loggedIn ? '说点什么...' : '登录后参与评论'}}" bindinput="onCommentInput" bindtap="handleCommentInputTap" />
+    <button class="send-button" bindtap="submitComment">发送</button>
+  </view>
+</view>
+<view wx:elif="{{loading}}" class="loading-page">加载中...</view>
