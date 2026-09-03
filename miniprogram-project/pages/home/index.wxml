@@ -1,7 +1,6 @@
 <view class="page-shell home-page">
   <view class="brand-row">
     <view><text class="brand-title">小毛毛</text><text class="brand-subtitle">毛毛的快乐狗生</text></view>
-    <view wx:if="{{readonlyMode}}" class="readonly-pill">浏览模式</view>
   </view>
   <scroll-view class="channel-scroll" scroll-x enable-flex show-scrollbar="false">
     <view class="channel-list">
