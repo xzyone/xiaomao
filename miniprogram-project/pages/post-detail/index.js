@@ -16,7 +16,6 @@ Page({
     commentText: '',
     displayImages: [],
     originalImageShown: [],
-    mediaHeights: [],
     currentMediaHeight: DEFAULT_MEDIA_HEIGHT_RPX,
     currentImageIndex: 0,
     currentImageCanShowOriginal: false,
@@ -53,7 +52,6 @@ Page({
         displayDate: formatDate(post.created_at),
         displayImages,
         originalImageShown,
-        mediaHeights: [],
         currentMediaHeight: DEFAULT_MEDIA_HEIGHT_RPX,
         currentImageIndex: 0,
         currentImageCanShowOriginal: Boolean(originalImages[0] && displayImages[0] !== originalImages[0])
@@ -85,24 +83,22 @@ Page({
   },
   onDetailImageLoad(event) {
     const index = Number(event.currentTarget.dataset.index) || 0
+    if (index !== 0) return
+
     const width = Number(event.detail.width) || 0
     const height = Number(event.detail.height) || 0
     if (!width || !height) return
 
     const naturalHeight = Math.round(750 * height / width)
     const mediaHeight = Math.max(MIN_MEDIA_HEIGHT_RPX, Math.min(MAX_MEDIA_HEIGHT_RPX, naturalHeight))
-    const updates = { [`mediaHeights[${index}]`]: mediaHeight }
-    if (index === this.data.currentImageIndex) updates.currentMediaHeight = mediaHeight
-    this.setData(updates)
+    this.setData({ currentMediaHeight: mediaHeight })
   },
   onMediaChange(event) {
     const index = Number(event.detail.current) || 0
     const original = this.data.post?.images?.[index]
     const current = this.data.displayImages[index]
-    const mediaHeight = this.data.mediaHeights[index] || DEFAULT_MEDIA_HEIGHT_RPX
     this.setData({
       currentImageIndex: index,
-      currentMediaHeight: mediaHeight,
       currentImageCanShowOriginal: Boolean(original && current && original !== current)
     })
   },
