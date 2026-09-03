@@ -1,15 +1,15 @@
 <template>
   <div class="about-modal-overlay" v-click-outside.mousedown="closeModal" v-escape-key="closeModal"
-    :class="{ 'animating': isAnimating }">
+    :class="{ animating: isAnimating }">
     <div class="about-modal" @click.stop :class="{ 'scale-in': isAnimating }">
       <div class="about-header">
         <div class="header-content">
           <div class="logo-section">
-            <div class="about-logo"><img :src="logoUrl" alt="小毛毛" /></div>
-
+            <div class="about-logo">
+              <img :src="logoUrl" alt="小毛毛" />
+            </div>
             <h2 class="about-title">关于小毛毛</h2>
           </div>
-          <p class="version">v1.3.2</p>
         </div>
         <button class="close-btn" @click="closeModal">
           <SvgIcon name="close" />
@@ -18,94 +18,45 @@
 
       <div class="about-content">
         <div class="about-main">
-          <div class="intro-section">
-            <h3>项目简介</h3>
-            <p>
-              小毛毛生活社区是一个面向开发者与学习者的开源示例项目，旨在提供从前端到后端的完整实践范本，帮助大家学习现代 Web 应用的架构设计、工程化与业务实现。
-            </p>
-          </div>
-          <div class="author-section">
-            <h3>开发者</h3>
-            <a href="https://github.com/ZTMYO" target="_blank" class="author-link">
-              <div class="author-info">
-                <img class="author-avatar" :src="ztmyoUrl" alt="ZTMYO">
-                <div class="author-details">
-                  <p class="author-name">@ZTMYO</p>
-                  <p class="author-desc">全栈开发者</p>
-                </div>
-              </div>
-            </a>
-          </div>
-          <div class="features-section">
-            <h3>项目亮点</h3>
-            <ul class="features-list">
-              <li><strong>前端：</strong>Vue 3+Vite+Pinia+Vue Router</li>
-              <li><strong>后端：</strong>Node.js/Express+MySQL</li>
-              <li><strong>工程化：</strong>环境配置、代码规范、构建与产物优化的完整流程</li>
-              <li><strong>业务能力：</strong>鉴权流程、路由守卫、状态管理与接口封装</li>
-              <li><strong>体验优化：</strong>骨架屏、懒加载、预加载、无障碍与响应式适配</li>
-              <li><strong>组件与分层：</strong>可复用组件拆分、按领域分组与别名引入</li>
-              <li><strong>后台管理：</strong>基础CRUD、数据管理与配置面板，支持后续扩展权限与统计</li>
-              <li><strong>第三方库：</strong>VueUse、Cropper.js、vue3-emoji-picker、svg-captcha等的集成与实践</li>
-            </ul>
-          </div>
+          <section class="content-section">
+            <h3>小毛毛是谁</h3>
+            <p>毛毛是一只陨石边牧，出生于 2024 年 12 月 22 日，2025 年 3 月 14 日正式加入我们的家庭。</p>
+            <p>“小毛毛”这个网站因他而存在。这里主要用来记录毛毛成长中的照片、视频和日常，也希望把那些平时很容易被忘掉的小事情，一点一点保存下来。</p>
+          </section>
 
-          <div class="api-section">
-            <h3>接口服务</h3>
-            <div class="api-content">
-              <p>
-                <strong>图片存储：</strong>灌装的示例图片来自 <a href="https://t.alcy.cc/" target="_blank" class="api-link"><img
-                    :src="liciUrl" alt="栗次元" class="api-icon">栗次元图床</a>，提供稳定的图片存储服务。
-              </p>
-              <p>
-                <strong>图片上传：</strong>用户上传图片使用了 <a href="https://api.aa1.cn/doc/360tc.html" target="_blank"
-                  class="api-link"><img :src="xiaRouUrl" alt="夏柔" class="api-icon">夏柔API</a>，确保图片上传的稳定性和速度。
-              </p>
-              <p>
-                <strong>属地查询：</strong>IP属地查询服务使用 <a href="https://api.pearktrue.cn/console/detail?id=290"
-                  target="_blank" class="api-link"><img :src="baoLuoUrl" alt="保罗"
-                    class="api-icon">保罗API</a>，实现精准的IP属地定位功能。
-              </p>
-            </div>
-          </div>
+          <section class="content-section">
+            <h3>关于这个网站</h3>
+            <p>小毛毛是一个自建的生活记录社区。</p>
+            <p>除了记录毛毛，也可以用来分享照片、视频和生活片段，并通过分类、标签、评论、点赞、收藏和关注等功能，把不同时间留下的内容慢慢整理起来。</p>
+            <p>相比追求复杂的推荐算法，这里更希望内容按照它发生的时间自然留下来——今天的、昨天的，以及很久以前的，都应该能重新被看到。</p>
+          </section>
 
+          <section class="content-section">
+            <h3>技术实现</h3>
+            <p>网站前端基于 Vue 3、Vite 和 Pinia，后端使用 Node.js、Express 和 MySQL。</p>
+            <p>服务部署在自有设备上，用户上传的图片和视频使用本地存储。项目仍在持续迭代中，很多功能也会随着实际使用逐步调整。</p>
+          </section>
 
+          <section class="content-section">
+            <h3>隐私说明</h3>
+            <p>我们尽量遵循数据最小化原则，只保存网站正常运行所需要的数据。</p>
+            <p>密码仅以安全哈希形式保存，不存储明文密码。</p>
+            <p>IP 属地仅用于展示发布文章或评论时的大致地区，系统保存的是解析后的属地信息，而不是将完整 IP 地址作为内容信息长期保存。</p>
+          </section>
 
-          <div class="privacy-section">
-            <h3>隐私声明</h3>
-            <div class="privacy-content">
-              <p>
-                <strong>数据保护：</strong>我们承诺不收集或存储用户的IP地址信息，保护用户的隐私和匿名性。
-              </p>
-              <p>
-                <strong>密码安全：</strong>用户密码采用SHA256加密算法进行哈希处理，确保密码信息的安全性，系统无法获取用户的明文密码。
-              </p>
-              <p>
-                <strong>数据最小化：</strong>我们仅收集必要的用户信息用于基本功能实现，不会收集与服务无关的个人数据。
-              </p>
-              <p>
-                <strong>本地存储：</strong>所有用户数据均存储在本地数据库中，不会上传至第三方服务器或云端。
-              </p>
-            </div>
-          </div>
-
-          <div class="copyright-section">
-            <h3>版权声明</h3>
-            <div class="copyright-content">
-              <p>
-                <strong>设计灵感：</strong>本校园图文社区的UI设计和交互体验参考了小红书平台，旨在为下载该开源项目的人员提供一个熟悉的项目体验。
-              </p>
-              <p>
-                <strong>开源项目：</strong>本项目基于 GPLv3 协议开源，仅供学习交流使用，不用于商业用途。所有代码遵循 GPLv3 开源协议，欢迎技术交流与讨论。
-              </p>
-              <p>
-                <strong>免责声明：</strong>本项目与小红书官方无任何关联，所有商标、品牌名称归其各自所有者所有。
-              </p>
-            </div>
-          </div>
+          <section class="content-section">
+            <h3>开源与致谢</h3>
+            <p>小毛毛基于开源项目进行二次开发，并在此基础上持续调整界面、功能和部署方式。</p>
+            <p>项目代码按照 GPLv3 开源协议发布。感谢原项目作者以及项目所使用的各类开源软件和社区。</p>
+          </section>
 
           <div class="about-footer">
-            <p>&copy; 2025 小毛毛生活社区. Made with ❤️ by @ZTMYO</p>
+            <p>© {{ currentYear }} 小毛毛 · 记录毛毛的快乐狗生</p>
+            <div class="filing-links">
+              <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">豫ICP备16000356号</a>
+              <span>·</span>
+              <a href="https://beian.mps.gov.cn/#/query/webSearch" target="_blank" rel="noopener noreferrer">粤公网安备44030002009199号</a>
+            </div>
           </div>
         </div>
       </div>
@@ -119,16 +70,10 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useScrollLock } from '@/composables/useScrollLock'
 
 const emit = defineEmits(['close'])
-
 const { lock, unlock } = useScrollLock()
 
-// 静态资源URL
 const logoUrl = new URL('@/assets/imgs/小毛毛.png', import.meta.url).href
-const ztmyoUrl = new URL('@/assets/imgs/ztmyo.png', import.meta.url).href
-const liciUrl = new URL('@/assets/imgs/栗次元.ico', import.meta.url).href
-const xiaRouUrl = new URL('@/assets/imgs/夏柔.ico', import.meta.url).href
-const baoLuoUrl = new URL('@/assets/imgs/保罗.ico', import.meta.url).href
-
+const currentYear = new Date().getFullYear()
 const isAnimating = ref(false)
 
 const closeModal = () => {
@@ -141,7 +86,6 @@ const closeModal = () => {
 
 onMounted(() => {
   lock()
-
   setTimeout(() => {
     isAnimating.value = true
   }, 10)
@@ -233,7 +177,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  margin-bottom: 12px;
 }
 
 .about-logo {
@@ -258,128 +201,35 @@ onMounted(() => {
   margin: 0;
 }
 
-.version {
-  font-size: 14px;
-  color: var(--text-color-secondary);
-  background: var(--bg-color-secondary);
-  padding: 4px 12px;
-  border-radius: 12px;
-  display: inline-block;
-  margin: 0;
-}
-
 .about-main {
   display: flex;
   flex-direction: column;
   gap: 28px;
 }
 
-.intro-section h3,
-.features-section h3,
-.author-section h3,
-.api-section h3,
-.privacy-section h3,
-.copyright-section h3 {
+.content-section h3 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-color-primary);
   margin: 0 0 12px 0;
 }
 
-.intro-section p {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--text-color-secondary);
-  margin: 0;
-}
-
-.features-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 8px;
-}
-
-.features-list li {
+.content-section p {
   font-size: 14px;
-  color: var(--text-color-primary);
-  padding: 8px 0;
-}
-
-.author-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-  border-radius: 12px;
-  padding: 12px;
-  transition: all 0.3s ease;
-}
-
-.author-link:hover {
-  background-color: var(--bg-color-secondary);
-}
-
-.author-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.author-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-color-primary);
-}
-
-
-
-.author-details {
-  flex: 1;
-}
-
-.author-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-color-primary);
-  margin: 0 0 4px 0;
-}
-
-.author-desc {
-  font-size: 14px;
-  color: var(--text-color-secondary);
-  margin: 0;
-}
-
-.privacy-content p,
-.copyright-content p {
-  font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.65;
   color: var(--text-color-secondary);
   margin: 0 0 12px 0;
 }
 
-.privacy-content p:last-child,
-.copyright-content p:last-child {
+.content-section p:last-child {
   margin-bottom: 0;
 }
 
-.privacy-content strong,
-.copyright-content strong {
-  color: var(--text-color-primary);
-}
-
-
-
 .about-footer {
   text-align: center;
-  margin-top: 32px;
+  margin-top: 4px;
   padding-top: 24px;
+  border-top: 1px solid var(--border-color-primary);
 }
 
 .about-footer p {
@@ -388,41 +238,27 @@ onMounted(() => {
   margin: 0;
 }
 
-.api-content p {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-color-secondary);
-  margin: 0 0 12px 0;
+.filing-links {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-color-tertiary);
 }
 
-.api-content p:last-child {
-  margin-bottom: 0;
-}
-
-.api-content strong {
-  color: var(--text-color-primary);
-}
-
-.api-link {
-  color: var(--text-color-primary);
-  font-weight: 450;
+.filing-links a {
+  color: var(--text-color-tertiary);
   text-decoration: none;
-  transition: opacity 0.2s ease;
+  transition: color 0.2s ease;
 }
 
-.api-link:hover {
-  opacity: 0.8;
+.filing-links a:hover {
+  color: var(--text-color-primary);
 }
 
-.api-icon {
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
-  vertical-align: middle;
-  border-radius: 2px;
-}
-
-/* 移动端适配 - 全屏显示 */
 @media (max-width: 768px) {
   .about-modal {
     width: 100vw;
@@ -489,19 +325,14 @@ onMounted(() => {
     flex-direction: row;
     padding-top: 12px;
     gap: 12px;
-    margin-bottom: -4px;
   }
 
   .about-title {
     font-size: 24px;
   }
 
-  .features-list {
-    grid-template-columns: 1fr;
-  }
-
-  .contact-links {
-    justify-content: center;
+  .filing-links {
+    gap: 6px;
   }
 }
 </style>
