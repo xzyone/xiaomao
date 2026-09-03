@@ -1,9 +1,10 @@
 .home-page { padding-left: 22rpx; padding-right: 22rpx; }
-.brand-row { padding: 28rpx 4rpx 14rpx; display: flex; align-items: center; justify-content: space-between; }
-.brand-title { display: block; font-size: 42rpx; font-weight: 800; letter-spacing: -1rpx; color: #222; }
-.brand-subtitle { display: block; margin-top: 4rpx; font-size: 22rpx; color: #999; }
-.channel-scroll { width: 100%; white-space: nowrap; margin-bottom: 18rpx; }
-.channel-list { display: flex; align-items: center; gap: 34rpx; min-width: max-content; padding: 12rpx 4rpx 16rpx; }
+.brand-row { padding: 22rpx 4rpx 12rpx; display: flex; align-items: center; justify-content: space-between; gap: 18rpx; }
+.brand-main { display: flex; align-items: baseline; gap: 16rpx; min-width: 0; }
+.brand-title { font-size: 40rpx; font-weight: 800; letter-spacing: -1rpx; color: #222; white-space: nowrap; }
+.brand-subtitle { font-size: 22rpx; color: #999; white-space: nowrap; }
+.channel-scroll { width: 100%; white-space: nowrap; margin-bottom: 14rpx; }
+.channel-list { display: flex; align-items: center; gap: 34rpx; min-width: max-content; padding: 8rpx 4rpx 16rpx; }
 .channel-item { color: #858585; font-size: 27rpx; line-height: 44rpx; position: relative; }
 .channel-item.active { color: #222; font-weight: 700; }
 .channel-item.active::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); bottom: -5rpx; width: 28rpx; height: 5rpx; border-radius: 4rpx; background: #ff2442; }
