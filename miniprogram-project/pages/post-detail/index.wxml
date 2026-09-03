@@ -1,7 +1,7 @@
 <view class="detail-page" wx:if="{{post}}">
   <swiper wx:if="{{post.type != 2 && post.images && post.images.length}}" class="media-swiper" indicator-dots="{{post.images.length > 1}}" circular="{{post.images.length > 1}}">
     <swiper-item wx:for="{{post.images}}" wx:key="*this">
-      <image class="detail-image" src="{{item}}" mode="aspectFit" data-url="{{item}}" bindtap="previewImage" />
+      <image class="detail-image" src="{{item}}" mode="aspectFit" lazy-load data-url="{{item}}" bindtap="previewImage" />
     </swiper-item>
   </swiper>
   <video wx:if="{{post.type == 2 && post.video_url && post.poster_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.poster_url}}" controls object-fit="contain" />
@@ -9,8 +9,7 @@
   <view class="detail-content">
     <view class="author-row">
       <view class="author-main">
-        <image wx:if="{{post.user_avatar}}" class="avatar" src="{{post.user_avatar}}" mode="aspectFill" />
-        <view wx:else class="avatar avatar-empty"></view>
+        <image class="avatar" src="{{post.user_avatar}}" mode="aspectFill" lazy-load binderror="onPostAvatarError" />
         <view>
           <text class="nickname">{{post.nickname || '匿名用户'}}</text>
           <text class="author-location" wx:if="{{post.location}}">IP属地 · {{post.location}}</text>
@@ -25,7 +24,7 @@
   <view wx:if="{{!readonlyMode}}" class="comments-section">
     <text class="section-title">评论 {{post.comment_count || 0}}</text>
     <view wx:for="{{comments}}" wx:key="id" class="comment-item">
-      <image wx:if="{{item.user_avatar}}" class="comment-avatar" src="{{item.user_avatar}}" mode="aspectFill" />
+      <image class="comment-avatar" src="{{item.user_avatar}}" mode="aspectFill" lazy-load data-index="{{index}}" binderror="onCommentAvatarError" />
       <view class="comment-body">
         <text class="comment-user">{{item.nickname || '匿名用户'}}</text>
         <text class="comment-content">{{item.content}}</text>
