@@ -8,7 +8,7 @@
  * @version v1.3.2
  */
 
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
 const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
@@ -35,6 +35,7 @@ const config = {
   },
 
   // 数据库配置
+  // MySQL TIMESTAMP 统一以 UTC 会话读写，浏览器再按访问者本地时区显示。
   database: {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -42,7 +43,7 @@ const config = {
     database: process.env.DB_NAME || 'xiaomao',
     port: process.env.DB_PORT || 3306,
     charset: 'utf8mb4',
-    timezone: '+08:00'
+    timezone: 'Z'
   },
 
   // 上传配置
@@ -136,7 +137,18 @@ const dbConfig = {
   queueLimit: 0
 };
 
-const pool = mysql.createPool(dbConfig);
+// 使用原始 pool 设置每条 MySQL 连接的会话时区，再暴露 Promise API 给业务层。
+// 这样 TIMESTAMP 在数据库和 Node 之间始终按 UTC 传递，不受 MySQL 主机时区影响。
+const rawPool = mysql.createPool(dbConfig);
+rawPool.on('connection', (connection) => {
+  connection.query("SET time_zone = '+00:00'", (error) => {
+    if (error) {
+      console.error('设置数据库会话时区失败:', error.message);
+    }
+  });
+});
+
+const pool = rawPool.promise();
 
 module.exports = {
   ...config,
