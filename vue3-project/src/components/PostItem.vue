@@ -3,12 +3,13 @@
     <!-- 上半部分：缩略图、标题内容、操作按钮 -->
     <div class="post-upper">
       <div class="post-thumbnail" @click="goToPostDetail">
-        <img v-if="post.type === 2 && post.images && post.images.length > 0" :src="post.images[0]" :alt="post.title"
+        <img v-if="post.type === 2 && (post.thumbnail_image || post.thumbnail_cover_url || (post.images && post.images.length > 0))"
+          :src="post.thumbnail_image || post.thumbnail_cover_url || post.images[0]" :alt="post.title" loading="lazy"
           @error="handleImageError" />
         <img
-          v-else-if="post.type !== 2 && ((post.originalData?.images && post.originalData.images.length > 0) || (post.images && post.images.length > 0))"
-          :src="(post.originalData?.images && post.originalData.images[0]) || (post.images && post.images[0]) || post.image"
-          :alt="post.title" @error="handleImageError" />
+          v-else-if="post.type !== 2 && (post.thumbnail_image || (post.thumbnail_images && post.thumbnail_images.length > 0) || (post.images && post.images.length > 0))"
+          :src="post.thumbnail_image || (post.thumbnail_images && post.thumbnail_images[0]) || post.image || (post.images && post.images[0])"
+          :alt="post.title" loading="lazy" @error="handleImageError" />
         <div v-else-if="post.type === 2" class="video-thumbnail">
           <span>视频</span>
         </div>
