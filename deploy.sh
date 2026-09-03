@@ -1,5 +1,5 @@
 #!/bin/bash
-# 小毛毛图文社区 Docker 一键部署脚本
+# 小毛毛社区 Docker 一键部署脚本
 # Bash 版本
 
 set -e
@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # 显示帮助信息
 show_help() {
-    echo -e "${CYAN}小毛毛图文社区 Docker 部署脚本${NC}"
+    echo -e "${CYAN}小毛毛社区 Docker 部署脚本${NC}"
     echo -e "${YELLOW}用法: ./deploy.sh [选项]${NC}"
     echo ""
     echo -e "${GREEN}选项:${NC}"
@@ -62,7 +62,7 @@ check_env_file() {
 
 # 启动服务
 start_services() {
-    echo -e "${GREEN}启动小毛毛图文社区服务...${NC}"
+    echo -e "${GREEN}启动小毛毛社区服务...${NC}"
     
     if [ "$1" = "--build" ]; then
         echo -e "${YELLOW}重新构建镜像...${NC}"
@@ -91,7 +91,7 @@ start_services() {
 
 # 停止服务
 stop_services() {
-    echo -e "${YELLOW}停止小毛毛图文社区服务...${NC}"
+    echo -e "${YELLOW}停止小毛毛社区服务...${NC}"
     docker-compose down
     
     if [ $? -eq 0 ]; then
@@ -138,7 +138,7 @@ seed_database() {
     echo -e "${YELLOW}初始化数据库并生成测试数据...${NC}"
     
     # 检查后端容器是否运行
-    if ! docker-compose ps | grep -q "xiaoshiliu-backend.*Up"; then
+    if ! docker-compose ps | grep -q "xiaomao-backend.*Up"; then
         echo -e "${RED}错误: 后端服务未运行，请先启动服务${NC}"
         echo -e "${YELLOW}使用 './deploy.sh' 启动服务${NC}"
         exit 1

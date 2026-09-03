@@ -1,10 +1,10 @@
-# 小毛毛图文社区 API 接口文档
+# 小毛毛社区 API 接口文档
 
 ## 项目信息
-- **项目名称**: 小毛毛图文社区
+- **项目名称**: 小毛毛社区
 - **版本**: v1.3.2
 - **基础URL**: `http://localhost:3001`
-- **数据库**: xiaoshiliu (MySQL)
+- **数据库**: xiaomao (MySQL)
 - **更新时间**: 2026-7-28
 
 ## 通用说明
@@ -109,7 +109,7 @@ Authorization: Bearer <your_jwt_token>
   "data": {
     "user": {
       "id": 1,
-      "user_id": "xiaoshiliu123",
+      "user_id": "xiaomao123",
       "nickname": "小毛毛用户",
       "avatar": "http://example.com/avatar.jpg",
       "bio": "这是我的个人简介",
@@ -309,7 +309,7 @@ Authorization: Bearer <your_jwt_token>
   "code": 200,
   "message": "验证码发送成功，请查收邮箱",
   "data": {
-    "user_id": "xiaoshiliu"
+    "user_id": "xiaomao"
   }
 }
 ```

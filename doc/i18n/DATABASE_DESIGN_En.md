@@ -2,7 +2,7 @@
 
 ## Overview
 
-Database structure design for the Xiaoshiliu-style image-text community project (simplified version), including core functionalities such as user management, content publishing, and social interactions.
+Database structure design for the Xiaomao-style image-text community project (simplified version), including core functionalities such as user management, content publishing, and social interactions.
 
 ### Character Set and Collation
 
@@ -18,7 +18,7 @@ Database structure design for the Xiaoshiliu-style image-text community project 
 |------------|------|-------------|-------|
 | id | BIGINT | User ID | Primary key, auto-increment |
 | password | VARCHAR(255) | Password | Nullable |
-| user_id | VARCHAR(50) | Xiaoshiliu ID | Unique identifier |
+| user_id | VARCHAR(50) | Xiaomao ID | Unique identifier |
 | email | VARCHAR(100) | Email | Optional, nullable |
 | nickname | VARCHAR(100) | Nickname | Display name |
 | avatar | VARCHAR(500) | Avatar URL | User avatar |

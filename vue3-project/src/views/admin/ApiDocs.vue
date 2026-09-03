@@ -1,7 +1,7 @@
 <template>
   <div class="api-docs">
     <div class="docs-header">
-      <h2>小毛毛图文社区 API 接口文档</h2>
+      <h2>小毛毛社区 API 接口文档</h2>
       <div class="docs-info">
         <span class="version">版本: v1.3.2</span>
         <span class="base-url">基础URL: http://localhost:3001/</span>

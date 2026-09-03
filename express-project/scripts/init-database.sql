@@ -1,7 +1,7 @@
--- 小毛毛图文社区数据库初始化脚本
+-- 小毛毛社区数据库初始化脚本
 -- 创建数据库（如果不存在）
-CREATE DATABASE IF NOT EXISTS `xiaoshiliu` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `xiaoshiliu`;
+CREATE DATABASE IF NOT EXISTS `xiaomao` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `xiaomao`;
 
 -- 1. 用户表
 CREATE TABLE IF NOT EXISTS `users` (
@@ -317,4 +317,4 @@ ON DUPLICATE KEY UPDATE `username` = VALUES(`username`);
 
 -- 数据库初始化完成
 SELECT '数据库初始化完成！' AS message;
-SELECT COUNT(*) AS table_count FROM information_schema.tables WHERE table_schema = 'xiaoshiliu';
+SELECT COUNT(*) AS table_count FROM information_schema.tables WHERE table_schema = 'xiaomao';

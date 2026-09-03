@@ -18,7 +18,7 @@ function Write-ColorOutput {
 }
 
 function Show-Help {
-    Write-ColorOutput "小毛毛图文社区 Docker 部署脚本" "Cyan"
+    Write-ColorOutput "小毛毛社区 Docker 部署脚本" "Cyan"
     Write-ColorOutput "用法: .\deploy.ps1 [选项]" "Yellow"
     Write-ColorOutput "" 
     Write-ColorOutput "选项:" "Green"
@@ -62,8 +62,8 @@ function Wait-ContainerHealthy {
 
 function Seed-Data {
     Write-ColorOutput "准备灌装示例数据..." "Cyan"
-    $mysqlHealthy = Wait-ContainerHealthy -ContainerName 'xiaoshiliu-mysql' -TimeoutSeconds 180
-    $backendHealthy = Wait-ContainerHealthy -ContainerName 'xiaoshiliu-backend' -TimeoutSeconds 180
+    $mysqlHealthy = Wait-ContainerHealthy -ContainerName 'xiaomao-mysql' -TimeoutSeconds 180
+    $backendHealthy = Wait-ContainerHealthy -ContainerName 'xiaomao-backend' -TimeoutSeconds 180
 
     if (-not $mysqlHealthy -or -not $backendHealthy) {
         Write-ColorOutput "等待服务健康超时，跳过灌装。" "Yellow"
@@ -71,7 +71,7 @@ function Seed-Data {
     }
 
     Write-ColorOutput "开始灌装数据（时间较长请耐心等待）..." "Yellow"
-    docker-compose -p xiaoshiliu exec -T backend node scripts/generate-data.js
+    docker-compose -p xiaomao exec -T backend node scripts/generate-data.js
     if ($LASTEXITCODE -eq 0) {
         Write-ColorOutput "灌装完成" "Green"
     }
@@ -81,15 +81,15 @@ function Seed-Data {
 }
 
 function Start-Services {
-    Write-ColorOutput "启动小毛毛图文社区服务..." "Green"
+    Write-ColorOutput "启动小毛毛社区服务..." "Green"
 
     if ($Build) {
         Write-ColorOutput "重新构建镜像..." "Yellow"
-        docker-compose -p xiaoshiliu down
-        docker-compose -p xiaoshiliu build --no-cache
+        docker-compose -p xiaomao down
+        docker-compose -p xiaomao build --no-cache
     }
 
-    docker-compose -p xiaoshiliu up -d
+    docker-compose -p xiaomao up -d
     if ($LASTEXITCODE -eq 0) {
         Write-ColorOutput "服务启动成功!" "Green"
         Write-ColorOutput "访问地址:" "Cyan"
@@ -108,7 +108,7 @@ function Start-Services {
 
 function Stop-Services {
     Write-ColorOutput "停止服务..." "Yellow"
-    docker-compose -p xiaoshiliu down
+    docker-compose -p xiaomao down
     if ($LASTEXITCODE -eq 0) {
         Write-ColorOutput "服务已停止" "Green"
     }
@@ -122,7 +122,7 @@ function Clean-Resources {
     $confirmation = Read-Host "确认继续? (y/N)"
     if ($confirmation -match '^[Yy]$') {
         Write-ColorOutput "清理Docker资源..." "Yellow"
-        docker-compose -p xiaoshiliu down -v --rmi all
+        docker-compose -p xiaomao down -v --rmi all
         docker system prune -f | Out-Null
         Write-ColorOutput "清理完成" "Green"
     }
@@ -133,12 +133,12 @@ function Clean-Resources {
 
 function Show-Logs {
     Write-ColorOutput "查看服务日志 (按 Ctrl+C 退出):" "Cyan"
-    docker-compose -p xiaoshiliu logs -f
+    docker-compose -p xiaomao logs -f
 }
 
 function Show-Status {
     Write-ColorOutput "服务状态:" "Cyan"
-    docker-compose -p xiaoshiliu ps
+    docker-compose -p xiaomao ps
 }
 
 if ($Help) {
