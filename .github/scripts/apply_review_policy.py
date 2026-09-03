@@ -1,0 +1,769 @@
+from pathlib import Path
+
+
+def replace_once(path, old, new):
+    p = Path(path)
+    text = p.read_text()
+    if old not in text:
+        raise SystemExit(f'Expected block not found in {path}: {old[:120]!r}')
+    text = text.replace(old, new, 1)
+    p.write_text(text)
+
+
+# 1) Review policy helper.
+Path('express-project/utils/reviewPolicy.js').write_text(r'''const { pool } = require('../config/config');
+
+const POST_REVIEW_SETTING_KEY = 'post_review_enabled';
+
+function parseBooleanSetting(value, defaultValue = true) {
+  if (value === undefined || value === null) return defaultValue;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
+
+async function getPostReviewEnabled() {
+  const [rows] = await pool.execute(
+    'SELECT setting_value FROM system_settings WHERE setting_key = ? LIMIT 1',
+    [POST_REVIEW_SETTING_KEY]
+  );
+
+  if (rows.length === 0) return true;
+  return parseBooleanSetting(rows[0].setting_value, true);
+}
+
+async function isUserReviewExempt(userId) {
+  const [rows] = await pool.execute(
+    'SELECT post_review_exempt FROM users WHERE id = ? LIMIT 1',
+    [String(userId)]
+  );
+
+  return rows.length > 0 && Number(rows[0].post_review_exempt) === 1;
+}
+
+async function getPostReviewPolicy(userId) {
+  const [reviewEnabled, userExempt] = await Promise.all([
+    getPostReviewEnabled(),
+    isUserReviewExempt(userId)
+  ]);
+
+  return { reviewEnabled, userExempt };
+}
+
+async function resolvePostStatus({ userId, requestedStatus, currentStatus = null }) {
+  const requested = Number(requestedStatus);
+
+  // Draft is always explicitly controlled by the author.
+  if (requested === 1) return 1;
+
+  // Editing already published or already pending content does not silently change
+  // its moderation state just because the global policy/user exemption changed.
+  if (currentStatus !== null && currentStatus !== undefined) {
+    const current = Number(currentStatus);
+    if (current === 0) return 0;
+    if (current === 2) return 2;
+  }
+
+  const { reviewEnabled, userExempt } = await getPostReviewPolicy(userId);
+  return reviewEnabled && !userExempt ? 2 : 0;
+}
+
+async function queuePostAudit(postId) {
+  const [rows] = await pool.execute(
+    'SELECT id FROM audit WHERE type = 3 AND target_id = ? ORDER BY id DESC LIMIT 1',
+    [String(postId)]
+  );
+
+  if (rows.length > 0) {
+    await pool.execute(
+      'UPDATE audit SET status = 0, admin_id = NULL, audit_time = NULL, created_at = NOW() WHERE id = ?',
+      [String(rows[0].id)]
+    );
+  } else {
+    await pool.execute(
+      'INSERT INTO audit (type, target_id, status) VALUES (3, ?, 0)',
+      [String(postId)]
+    );
+  }
+}
+
+module.exports = {
+  POST_REVIEW_SETTING_KEY,
+  getPostReviewEnabled,
+  getPostReviewPolicy,
+  resolvePostStatus,
+  queuePostAudit
+};
+''')
+
+
+# 2) Make DB migrations cumulative and add moderation policy schema.
+Path('express-project/scripts/migrate-database.js').write_text(r'''const { pool } = require('../config/config');
+
+const CONTENT_LOCATION_MIGRATION = '20260903_content_ip_location';
+const REVIEW_POLICY_MIGRATION = '20260903_post_review_policy';
+
+async function columnExists(tableName, columnName) {
+  const [rows] = await pool.execute(
+    `SELECT COUNT(*) AS count
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?
+       AND COLUMN_NAME = ?`,
+    [tableName, columnName]
+  );
+
+  return Number(rows[0].count) > 0;
+}
+
+async function ensureMigrationTable() {
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id varchar(100) NOT NULL,
+      applied_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+async function migrationApplied(id) {
+  const [rows] = await pool.execute(
+    'SELECT id FROM schema_migrations WHERE id = ? LIMIT 1',
+    [id]
+  );
+  return rows.length > 0;
+}
+
+async function markApplied(id) {
+  await pool.execute(
+    'INSERT IGNORE INTO schema_migrations (id) VALUES (?)',
+    [id]
+  );
+}
+
+async function migrateContentIpLocation() {
+  if (!(await columnExists('posts', 'ip_location'))) {
+    console.log('Adding posts.ip_location...');
+    await pool.execute(
+      "ALTER TABLE posts ADD COLUMN ip_location varchar(100) DEFAULT NULL COMMENT '发布时IP属地' AFTER comment_count"
+    );
+  }
+
+  if (!(await columnExists('comments', 'ip_location'))) {
+    console.log('Adding comments.ip_location...');
+    await pool.execute(
+      "ALTER TABLE comments ADD COLUMN ip_location varchar(100) DEFAULT NULL COMMENT '评论时IP属地' AFTER like_count"
+    );
+  }
+
+  // Historical rows are intentionally NOT backfilled from users.location.
+  await markApplied(CONTENT_LOCATION_MIGRATION);
+}
+
+async function migratePostReviewPolicy() {
+  if (!(await columnExists('users', 'post_review_exempt'))) {
+    console.log('Adding users.post_review_exempt...');
+    await pool.execute(
+      "ALTER TABLE users ADD COLUMN post_review_exempt tinyint(1) NOT NULL DEFAULT 0 COMMENT '内容发布免审：0-正常审核，1-免审直发' AFTER location"
+    );
+  }
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      setting_key varchar(100) NOT NULL,
+      setting_value varchar(255) NOT NULL,
+      updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (setting_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统设置'
+  `);
+
+  // Keep the current behaviour after upgrading: review is enabled by default.
+  await pool.execute(
+    "INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('post_review_enabled', '1')"
+  );
+
+  await markApplied(REVIEW_POLICY_MIGRATION);
+}
+
+async function runMigration(id, migrate) {
+  if (await migrationApplied(id)) {
+    console.log(`Migration already applied: ${id}`);
+    return;
+  }
+
+  await migrate();
+  console.log(`Migration applied: ${id}`);
+}
+
+async function main() {
+  try {
+    await ensureMigrationTable();
+    await runMigration(CONTENT_LOCATION_MIGRATION, migrateContentIpLocation);
+    await runMigration(REVIEW_POLICY_MIGRATION, migratePostReviewPolicy);
+  } finally {
+    await pool.end();
+  }
+}
+
+main().catch(error => {
+  console.error('Database migration failed:', error);
+  process.exit(1);
+});
+''')
+
+
+# 3) Clean-install database definitions.
+replace_once(
+    'express-project/scripts/init-database.js',
+    "        `location` varchar(100) DEFAULT NULL COMMENT 'IP属地',\n",
+    "        `location` varchar(100) DEFAULT NULL COMMENT 'IP属地',\n        `post_review_exempt` tinyint(1) NOT NULL DEFAULT 0 COMMENT '内容发布免审：0-正常审核，1-免审直发',\n"
+)
+replace_once(
+    'express-project/scripts/init-database.js',
+    "      // 创建管理员表\n      await this.createAdminTable(connection);",
+    "      // 创建系统设置表\n      await this.createSystemSettingsTable(connection);\n\n      // 创建管理员表\n      await this.createAdminTable(connection);"
+)
+replace_once(
+    'express-project/scripts/init-database.js',
+    "  async createAdminTable(connection) {",
+    r'''  async createSystemSettingsTable(connection) {
+    const sql = `
+      CREATE TABLE IF NOT EXISTS \`system_settings\` (
+        \`setting_key\` varchar(100) NOT NULL COMMENT '设置键',
+        \`setting_value\` varchar(255) NOT NULL COMMENT '设置值',
+        \`updated_at\` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+        PRIMARY KEY (\`setting_key\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统设置';
+    `;
+    await connection.execute(sql);
+    await connection.execute(
+      "INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('post_review_enabled', '1')"
+    );
+    console.log('✓ system_settings 表创建成功');
+  }
+
+  async createAdminTable(connection) {'''
+)
+
+sql_path = Path('express-project/scripts/init-database.sql')
+sql_text = sql_path.read_text()
+old = "  `location` varchar(100) DEFAULT NULL COMMENT 'IP属地',\n"
+if old not in sql_text:
+    raise SystemExit('users.location field not found in init-database.sql')
+sql_text = sql_text.replace(
+    old,
+    old + "  `post_review_exempt` tinyint(1) NOT NULL DEFAULT 0 COMMENT '内容发布免审：0-正常审核，1-免审直发',\n",
+    1
+)
+if 'CREATE TABLE IF NOT EXISTS `system_settings`' not in sql_text:
+    sql_text += r'''
+
+-- 系统设置表
+CREATE TABLE IF NOT EXISTS `system_settings` (
+  `setting_key` varchar(100) NOT NULL COMMENT '设置键',
+  `setting_value` varchar(255) NOT NULL COMMENT '设置值',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统设置';
+
+INSERT IGNORE INTO `system_settings` (`setting_key`, `setting_value`)
+VALUES ('post_review_enabled', '1');
+'''
+sql_path.write_text(sql_text)
+
+
+# 4) Backend publication policy.
+posts_path = Path('express-project/routes/posts.js')
+posts = posts_path.read_text()
+old_import = "const { getContentLocation } = require('../utils/contentLocation');\n"
+if old_import not in posts:
+    raise SystemExit('contentLocation import not found')
+posts = posts.replace(
+    old_import,
+    old_import + "const { resolvePostStatus, queuePostAudit } = require('../utils/reviewPolicy');\n",
+    1
+)
+posts = posts.replace(
+    "    const postType = type || 1; // 默认为图文类型\n",
+    "    const postType = type || 1; // 默认为图文类型\n    const requestedStatus = status === undefined ? 0 : Number(status);\n",
+    1
+)
+if "if (status !== 1 && (!title || !content))" not in posts:
+    raise SystemExit('create validation status block not found')
+posts = posts.replace(
+    "if (status !== 1 && (!title || !content))",
+    "if (requestedStatus !== 1 && (!title || !content))",
+    1
+)
+old_create = r'''    // 草稿不记录属地；首次提交/发布时固化当次请求的IP属地
+    const ipLocation = String(status) === '1' ? null : await getContentLocation(req);
+
+    // 插入笔记
+    console.log('📝 开始插入笔记到数据库...');
+    const [result] = await pool.execute(
+      'INSERT INTO posts (user_id, title, content, category_id, status, type, ip_location) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId, title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), postType, ipLocation]
+    );'''
+new_create = r'''    // 客户端只表达“草稿/发布意图”，最终是否审核由服务端策略决定。
+    const effectiveStatus = await resolvePostStatus({
+      userId,
+      requestedStatus
+    });
+
+    // 草稿不记录属地；首次提交/发布时固化当次请求的IP属地
+    const ipLocation = effectiveStatus === 1 ? null : await getContentLocation(req);
+
+    // 插入笔记
+    console.log('📝 开始插入笔记到数据库...');
+    const [result] = await pool.execute(
+      'INSERT INTO posts (user_id, title, content, category_id, status, type, ip_location) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId, title || '', sanitizedContent, category_id || null, effectiveStatus.toString(), postType, ipLocation]
+    );'''
+if old_create not in posts:
+    raise SystemExit('create post insertion block not found')
+posts = posts.replace(old_create, new_create, 1)
+posts = posts.replace(
+    "if (status === 0 && content && hasMentions(content))",
+    "if (effectiveStatus === 0 && content && hasMentions(content))",
+    1
+)
+old_audit = r'''    // 如果笔记状态为待审核(status=2)，在audit表中添加审核记录
+    if (status === 2) {
+      try {
+        await pool.execute(
+          'INSERT INTO audit (type, target_id, status) VALUES (?, ?, ?)',
+          [3, postId, 0]
+        );
+        console.log(`✅ 审核记录创建成功 - 笔记ID: ${postId}`);
+      } catch (error) {
+        console.error('❌ 创建审核记录失败:', error);
+      }
+    }'''
+new_audit = r'''    // 只有真正进入待审核状态的笔记才进入审核队列。
+    if (effectiveStatus === 2) {
+      try {
+        await queuePostAudit(postId);
+        console.log(`✅ 审核记录创建成功 - 笔记ID: ${postId}`);
+      } catch (error) {
+        console.error('❌ 创建审核记录失败:', error);
+      }
+    }'''
+if old_audit not in posts:
+    raise SystemExit('create audit block not found')
+posts = posts.replace(old_audit, new_audit, 1)
+old_create_response = r'''    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      message: '发布成功',
+      data: { id: postId }
+    });'''
+new_create_response = r'''    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      message: effectiveStatus === 1 ? '草稿保存成功' : (effectiveStatus === 2 ? '已提交审核' : '发布成功'),
+      data: {
+        id: postId,
+        status: effectiveStatus,
+        review_required: effectiveStatus === 2
+      }
+    });'''
+if old_create_response not in posts:
+    raise SystemExit('create response block not found')
+posts = posts.replace(old_create_response, new_create_response, 1)
+
+# Update route: use current moderation state and current policy.
+if "if (status !== 1 && (!title || !content || !category_id))" not in posts:
+    raise SystemExit('update validation status block not found')
+posts = posts.replace(
+    "if (status !== 1 && (!title || !content || !category_id))",
+    "if (Number(status) !== 1 && (!title || !content || !category_id))",
+    1
+)
+old_update = r'''    // 在更新之前获取原始笔记信息（用于对比@用户变化）
+    const [originalPostRows] = await pool.execute('SELECT status, content, ip_location FROM posts WHERE id = ?', [postId.toString()]);
+    const wasOriginallyDraft = originalPostRows.length > 0 && originalPostRows[0].status === 1;
+    const originalContent = originalPostRows.length > 0 ? originalPostRows[0].content : '';
+    let ipLocation = originalPostRows.length > 0 ? originalPostRows[0].ip_location : null;
+
+    // 只有草稿首次提交时记录发布属地；已提交内容后续编辑不改变历史属地
+    if (wasOriginallyDraft && String(status) !== '1') {
+      ipLocation = await getContentLocation(req);
+    }
+
+    // 更新笔记基本信息
+    await pool.execute(
+      'UPDATE posts SET title = ?, content = ?, category_id = ?, status = ?, ip_location = ? WHERE id = ?',
+      [title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), ipLocation, postId.toString()]
+    );'''
+new_update = r'''    // 在更新之前获取原始笔记信息（用于对比@用户变化和审核状态）
+    const [originalPostRows] = await pool.execute('SELECT status, content, ip_location FROM posts WHERE id = ?', [postId.toString()]);
+    const originalStatus = originalPostRows.length > 0 ? Number(originalPostRows[0].status) : 1;
+    const requestedStatus = status === undefined ? originalStatus : Number(status);
+    const effectiveStatus = await resolvePostStatus({
+      userId,
+      requestedStatus,
+      currentStatus: originalStatus
+    });
+    const wasOriginallyDraft = originalStatus === 1;
+    const originalContent = originalPostRows.length > 0 ? originalPostRows[0].content : '';
+    let ipLocation = originalPostRows.length > 0 ? originalPostRows[0].ip_location : null;
+
+    // 草稿/驳回内容重新提交且没有历史属地时，固化本次提交属地。
+    if (!ipLocation && (originalStatus === 1 || originalStatus === 3) && effectiveStatus !== 1) {
+      ipLocation = await getContentLocation(req);
+    }
+
+    // 更新笔记基本信息
+    await pool.execute(
+      'UPDATE posts SET title = ?, content = ?, category_id = ?, status = ?, ip_location = ? WHERE id = ?',
+      [title || '', sanitizedContent, category_id || null, effectiveStatus.toString(), ipLocation, postId.toString()]
+    );'''
+if old_update not in posts:
+    raise SystemExit('update moderation block not found')
+posts = posts.replace(old_update, new_update, 1)
+posts = posts.replace(
+    "if (status === 0 && content) { // 只有在已发布状态下才处理@通知",
+    "if (effectiveStatus === 0 && content) { // 只有实际发布时才处理@通知",
+    1
+)
+old_update_response = r'''    console.log(`更新笔记成功 - 用户ID: ${userId}, 笔记ID: ${postId}`);
+
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      message: '更新成功',
+      data: { id: postId }
+    });'''
+new_update_response = r'''    if (effectiveStatus === 2) {
+      await queuePostAudit(postId);
+    }
+
+    console.log(`更新笔记成功 - 用户ID: ${userId}, 笔记ID: ${postId}, 状态: ${effectiveStatus}`);
+
+    const isSubmission = originalStatus === 1 || originalStatus === 3;
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      message: isSubmission
+        ? (effectiveStatus === 2 ? '已提交审核' : '发布成功')
+        : '更新成功',
+      data: {
+        id: postId,
+        status: effectiveStatus,
+        review_required: effectiveStatus === 2
+      }
+    });'''
+if old_update_response not in posts:
+    raise SystemExit('update response block not found')
+posts = posts.replace(old_update_response, new_update_response, 1)
+
+# Fix the remaining recommendation query from the previous content-location migration.
+posts = posts.replace('          u.location, \n          u.verified,', '          p.ip_location as location, \n          u.verified,')
+posts_path.write_text(posts)
+
+
+# 5) Admin API: global switch and per-user exemption.
+admin_path = Path('express-project/routes/admin.js')
+admin = admin_path.read_text()
+marker = "const NotificationHelper = require('../utils/notificationHelper')\n"
+if marker not in admin:
+    raise SystemExit('admin import marker not found')
+settings_api = r'''
+
+const POST_REVIEW_SETTING_KEY = 'post_review_enabled'
+
+router.get('/review-settings', adminAuth, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT setting_value FROM system_settings WHERE setting_key = ? LIMIT 1',
+      [POST_REVIEW_SETTING_KEY]
+    )
+    const enabled = rows.length === 0
+      ? true
+      : ['1', 'true', 'yes', 'on'].includes(String(rows[0].setting_value).toLowerCase())
+
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      message: 'success',
+      data: { post_review_enabled: enabled }
+    })
+  } catch (error) {
+    console.error('获取内容审核设置失败:', error)
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      code: RESPONSE_CODES.ERROR,
+      message: '获取内容审核设置失败'
+    })
+  }
+})
+
+router.put('/review-settings', adminAuth, async (req, res) => {
+  try {
+    const { post_review_enabled } = req.body
+    if (typeof post_review_enabled !== 'boolean') {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        code: RESPONSE_CODES.VALIDATION_ERROR,
+        message: 'post_review_enabled 必须为布尔值'
+      })
+    }
+
+    await pool.execute(
+      `INSERT INTO system_settings (setting_key, setting_value)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [POST_REVIEW_SETTING_KEY, post_review_enabled ? '1' : '0']
+    )
+
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      message: post_review_enabled ? '内容审核已开启' : '内容审核已关闭',
+      data: { post_review_enabled }
+    })
+  } catch (error) {
+    console.error('更新内容审核设置失败:', error)
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      code: RESPONSE_CODES.ERROR,
+      message: '更新内容审核设置失败'
+    })
+  }
+})
+'''
+admin = admin.replace(marker, marker + settings_api, 1)
+old_fields = "updateFields: ['user_id', 'nickname', 'avatar', 'bio', 'location', 'is_active', 'gender', 'zodiac_sign', 'mbti', 'education', 'major', 'interests', 'verified'],"
+new_fields = "updateFields: ['user_id', 'nickname', 'avatar', 'bio', 'location', 'post_review_exempt', 'is_active', 'gender', 'zodiac_sign', 'mbti', 'education', 'major', 'interests', 'verified'],"
+if old_fields not in admin:
+    raise SystemExit('usersCrudConfig updateFields not found')
+admin = admin.replace(old_fields, new_fields, 1)
+admin_path.write_text(admin)
+
+
+# 6) Publish UI sends publication intent; backend resolves moderation.
+publish_path = Path('vue3-project/src/views/publish/index.vue')
+publish = publish_path.read_text()
+old_status = "status: 2 // 发布状态：2=待审核"
+if publish.count(old_status) != 2:
+    raise SystemExit(f'Expected 2 publish status markers, found {publish.count(old_status)}')
+publish = publish.replace(
+    old_status,
+    "status: 0 // 发布意图：是否进入审核由后端策略决定"
+)
+old_success = "showMessage('发布成功！', 'success')"
+if publish.count(old_success) != 2:
+    raise SystemExit(f'Expected 2 publish success messages, found {publish.count(old_success)}')
+publish = publish.replace(
+    old_success,
+    "showMessage(response.message || '发布成功！', 'success')"
+)
+publish_path.write_text(publish)
+
+
+# 7) User management exposes exemption visibly and in edit form.
+user_ui_path = Path('vue3-project/src/views/admin/UserManagement.vue')
+user_ui = user_ui_path.read_text()
+old_col = "  { key: 'location', label: 'IP属地', sortable: false },\n"
+if old_col not in user_ui:
+    raise SystemExit('UserManagement location column not found')
+user_ui = user_ui.replace(
+    old_col,
+    old_col + "  { key: 'post_review_exempt', label: '内容免审', type: 'boolean', sortable: false },\n",
+    1
+)
+old_field = "  { key: 'location', label: '属地', type: 'text', placeholder: '请输入属地' },\n"
+if old_field not in user_ui:
+    raise SystemExit('UserManagement location form field not found')
+exemption_field = r'''  { key: 'post_review_exempt', label: '内容发布审核', type: 'radio', options: [
+    { value: 0, label: '正常审核' },
+    { value: 1, label: '免审直发' }
+  ] },
+'''
+user_ui = user_ui.replace(old_field, old_field + exemption_field, 1)
+user_ui_path.write_text(user_ui)
+
+
+# 8) Global review switch on the existing Post Audit page.
+audit_ui_path = Path('vue3-project/src/views/admin/PostAudit.vue')
+audit_ui = audit_ui_path.read_text()
+old_start = '<template>\n  <CrudTable title="笔记审核"'
+new_start = r'''<template>
+  <div class="review-policy-card">
+    <div class="review-policy-copy">
+      <div class="review-policy-title">发布审核模式</div>
+      <div class="review-policy-description">
+        <template v-if="reviewEnabled">普通用户发布后进入待审核；免审用户直接发布。</template>
+        <template v-else>新发布内容直接发布；已有待审核内容保持不变。</template>
+      </div>
+    </div>
+    <button type="button" class="review-toggle" :class="{ active: reviewEnabled }"
+      :disabled="reviewSettingLoading || reviewSettingSaving" :aria-pressed="reviewEnabled"
+      @click="toggleReviewSetting">
+      <span class="review-toggle-track"><span class="review-toggle-thumb"></span></span>
+      <span>{{ reviewSettingLoading ? '读取中' : (reviewEnabled ? '已开启' : '已关闭') }}</span>
+    </button>
+  </div>
+
+  <CrudTable title="笔记审核"'''
+if old_start not in audit_ui:
+    raise SystemExit('PostAudit template start not found')
+audit_ui = audit_ui.replace(old_start, new_start, 1)
+audit_ui = audit_ui.replace(
+    "import { computed, ref } from 'vue'",
+    "import { computed, ref, onMounted } from 'vue'",
+    1
+)
+auth_block = r'''const getAuthHeaders = () => {
+  const headers = {
+    'Content-Type': 'application/json'
+  }
+
+  const token = localStorage.getItem('admin_token')
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
+}
+'''
+if auth_block not in audit_ui:
+    raise SystemExit('PostAudit getAuthHeaders block not found')
+settings_logic = r'''
+
+const reviewEnabled = ref(true)
+const reviewSettingLoading = ref(true)
+const reviewSettingSaving = ref(false)
+
+const loadReviewSettings = async () => {
+  reviewSettingLoading.value = true
+  try {
+    const response = await fetch(`${apiConfig.baseURL}/admin/review-settings`, {
+      headers: getAuthHeaders()
+    })
+    const result = await response.json()
+    if (result.code === 200 && result.data) {
+      reviewEnabled.value = Boolean(result.data.post_review_enabled)
+    } else {
+      showMessage(result.message || '读取审核设置失败', 'error')
+    }
+  } catch (error) {
+    console.error('读取审核设置失败:', error)
+    showMessage('读取审核设置失败', 'error')
+  } finally {
+    reviewSettingLoading.value = false
+  }
+}
+
+const toggleReviewSetting = async () => {
+  if (reviewSettingLoading.value || reviewSettingSaving.value) return
+
+  const nextValue = !reviewEnabled.value
+  reviewSettingSaving.value = true
+  try {
+    const response = await fetch(`${apiConfig.baseURL}/admin/review-settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ post_review_enabled: nextValue })
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      reviewEnabled.value = nextValue
+      showMessage(result.message || (nextValue ? '内容审核已开启' : '内容审核已关闭'))
+    } else {
+      showMessage(result.message || '更新审核设置失败', 'error')
+    }
+  } catch (error) {
+    console.error('更新审核设置失败:', error)
+    showMessage('更新审核设置失败', 'error')
+  } finally {
+    reviewSettingSaving.value = false
+  }
+}
+
+onMounted(loadReviewSettings)
+'''
+audit_ui = audit_ui.replace(auth_block, auth_block + settings_logic, 1)
+style_marker = '</style>'
+styles = r'''
+
+.review-policy-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--border-color-primary);
+  border-radius: 10px;
+  background: var(--bg-color-primary);
+}
+
+.review-policy-copy {
+  min-width: 0;
+}
+
+.review-policy-title {
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color-primary);
+}
+
+.review-policy-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-color-secondary);
+}
+
+.review-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+}
+
+.review-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.review-toggle-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--border-color-primary);
+  transition: background 0.2s ease;
+}
+
+.review-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.review-toggle.active {
+  color: var(--primary-color);
+}
+
+.review-toggle.active .review-toggle-track {
+  background: var(--primary-color);
+}
+
+.review-toggle.active .review-toggle-thumb {
+  transform: translateX(18px);
+}
+
+@media (max-width: 640px) {
+  .review-policy-card {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+'''
+if style_marker not in audit_ui:
+    raise SystemExit('PostAudit style end not found')
+audit_ui = audit_ui.replace(style_marker, styles + '\n' + style_marker, 1)
+audit_ui_path.write_text(audit_ui)
