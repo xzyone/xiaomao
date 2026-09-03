@@ -1,5 +1,6 @@
 const ABSOLUTE_URL_RE = /^[a-z][a-z\d+.-]*:/i
-const DEFAULT_AVATAR = '/assets/avatar.png'
+const ORIGINAL_IMAGE_ROUTE = '/api/files/images/'
+const THUMBNAIL_ROUTE = '/api/files/thumbnails/'
 
 function getServerOrigin(apiBaseUrl = '') {
   const match = String(apiBaseUrl).trim().match(/^(https?:\/\/[^/]+)/i)
@@ -25,12 +26,21 @@ function toAbsoluteMediaUrl(value, apiBaseUrl = '') {
     : `${origin}/${mediaUrl.replace(/^(\.\/)+/, '')}`
 }
 
+function toThumbnailUrl(value, apiBaseUrl = '') {
+  const absoluteUrl = toAbsoluteMediaUrl(value, apiBaseUrl)
+  if (typeof absoluteUrl !== 'string' || !absoluteUrl.includes(ORIGINAL_IMAGE_ROUTE)) {
+    return absoluteUrl
+  }
+  return absoluteUrl.replace(ORIGINAL_IMAGE_ROUTE, THUMBNAIL_ROUTE)
+}
+
 function normalizeVideo(video, apiBaseUrl) {
   if (!video || typeof video !== 'object') return video
   return {
     ...video,
     video_url: toAbsoluteMediaUrl(video.video_url, apiBaseUrl),
-    cover_url: toAbsoluteMediaUrl(video.cover_url, apiBaseUrl)
+    cover_url: toAbsoluteMediaUrl(video.cover_url, apiBaseUrl),
+    thumbnail_cover_url: toThumbnailUrl(video.cover_url, apiBaseUrl)
   }
 }
 
@@ -40,17 +50,23 @@ function normalizePost(post, apiBaseUrl) {
   const images = Array.isArray(post.images)
     ? post.images.map(image => toAbsoluteMediaUrl(image, apiBaseUrl))
     : []
+  const thumbnailImages = Array.isArray(post.thumbnail_images) && post.thumbnail_images.length
+    ? post.thumbnail_images.map(image => toAbsoluteMediaUrl(image, apiBaseUrl))
+    : images.map(image => toThumbnailUrl(image, apiBaseUrl))
   const coverUrl = toAbsoluteMediaUrl(post.cover_url, apiBaseUrl)
-  const avatarUrl = toAbsoluteMediaUrl(post.user_avatar, apiBaseUrl)
+  const thumbnailCoverUrl = toThumbnailUrl(coverUrl, apiBaseUrl)
 
   return {
     ...post,
     images,
+    thumbnail_images: thumbnailImages,
     image: toAbsoluteMediaUrl(post.image, apiBaseUrl),
+    thumbnail_image: thumbnailImages[0] || toThumbnailUrl(post.image, apiBaseUrl),
     video_url: toAbsoluteMediaUrl(post.video_url, apiBaseUrl),
     cover_url: coverUrl,
-    poster_url: coverUrl || images[0] || '',
-    user_avatar: avatarUrl || DEFAULT_AVATAR,
+    thumbnail_cover_url: thumbnailCoverUrl,
+    poster_url: thumbnailCoverUrl || thumbnailImages[0] || coverUrl || images[0] || '',
+    user_avatar: toAbsoluteMediaUrl(post.user_avatar, apiBaseUrl),
     videos: Array.isArray(post.videos)
       ? post.videos.map(video => normalizeVideo(video, apiBaseUrl))
       : post.videos
@@ -59,10 +75,9 @@ function normalizePost(post, apiBaseUrl) {
 
 function normalizeComment(comment, apiBaseUrl) {
   if (!comment || typeof comment !== 'object') return comment
-  const avatarUrl = toAbsoluteMediaUrl(comment.user_avatar, apiBaseUrl)
   return {
     ...comment,
-    user_avatar: avatarUrl || DEFAULT_AVATAR,
+    user_avatar: toAbsoluteMediaUrl(comment.user_avatar, apiBaseUrl),
     replies: Array.isArray(comment.replies)
       ? comment.replies.map(reply => normalizeComment(reply, apiBaseUrl))
       : comment.replies
@@ -71,17 +86,16 @@ function normalizeComment(comment, apiBaseUrl) {
 
 function normalizeUser(user, apiBaseUrl) {
   if (!user || typeof user !== 'object') return user
-  const avatarUrl = toAbsoluteMediaUrl(user.avatar, apiBaseUrl)
   return {
     ...user,
-    avatar: avatarUrl || DEFAULT_AVATAR
+    avatar: toAbsoluteMediaUrl(user.avatar, apiBaseUrl)
   }
 }
 
 module.exports = {
-  DEFAULT_AVATAR,
   getServerOrigin,
   toAbsoluteMediaUrl,
+  toThumbnailUrl,
   normalizePost,
   normalizeComment,
   normalizeUser
