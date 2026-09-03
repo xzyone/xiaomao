@@ -1,7 +1,7 @@
 <view class="detail-page" wx:if="{{post}}">
   <view wx:if="{{post.type != 2 && displayImages && displayImages.length}}" class="media-stage">
     <swiper class="media-swiper" indicator-dots="{{displayImages.length > 1}}" circular="{{displayImages.length > 1}}" bindchange="onMediaChange">
-      <swiper-item wx:for="{{displayImages}}" wx:key="index">
+      <swiper-item wx:for="{{displayImages}}" wx:key="*this">
         <image class="detail-image" src="{{item}}" mode="aspectFit" lazy-load data-url="{{item}}" bindtap="previewImage" />
       </swiper-item>
     </swiper>
