@@ -76,7 +76,9 @@ jobs:
 
       - name: Check legacy visible branding
         run: |
-          if git grep -nE '小石榴|石榴号'; then
+          matches="$(git grep -nE '小石榴|石榴号' -- . ':!.github/workflows/apply-personal-xiaomao-cleanup.yml' || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
             echo 'Legacy branding remains in tracked text files.' >&2
             exit 1
           fi
