@@ -16,6 +16,8 @@ const config = require('./config/config');
 const { HTTP_STATUS, RESPONSE_CODES } = require('./constants');
 // 导入自动解封功能
 const { startAutoUnbanService } = require('./utils/autoUnban');
+const { miniappReadonlyGuard } = require('./utils/miniappPolicy');
+const { protectPostListVisibility } = require('./middleware/postVisibility');
 
 // 导入路由模块
 const authRoutes = require('./routes/auth');
@@ -32,6 +34,7 @@ const adminRoutes = require('./routes/admin');
 const systemSettingsRoutes = require('./routes/systemSettings');
 const categoriesRoutes = require('./routes/categories');
 const filesRoutes = require('./routes/files');
+const miniappRoutes = require('./routes/miniapp');
 
 const app = express();
 
@@ -64,7 +67,7 @@ const corsOptions = {
   origin: config.cors.origin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Platform']
 };
 
 app.use(cors(corsOptions));
@@ -84,11 +87,15 @@ app.get('/api/health', (req, res) => {
 
 // 路由配置
 app.use('/api', apiLimiter);
+// 小程序审核模式在服务端执行。所有小程序API请求都会携带
+// X-Client-Platform: wechat-miniapp，开启审核模式后只允许浏览相关GET接口。
+app.use('/api', miniappReadonlyGuard);
+app.use('/api/miniapp', miniappRoutes);
 app.use('/api/auth', authLimiter);
 app.use('/api/upload', uploadLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/posts', postsRoutes);
+app.use('/api/posts', protectPostListVisibility, postsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/tags', tagsRoutes);

@@ -26,6 +26,39 @@
       </div>
     </section>
 
+    <section class="settings-card">
+      <div class="settings-card-header miniapp-header">
+        <div>
+          <h2>小程序审核模式</h2>
+          <p>用于小程序提交审核或需要临时关闭互动能力的场景。</p>
+        </div>
+        <button type="button" class="toggle-switch" :class="{ active: miniappReadonlyMode }"
+          :disabled="loading || savingMiniapp" :aria-pressed="miniappReadonlyMode"
+          @click="toggleMiniappReadonlyMode">
+          <span class="toggle-knob"></span>
+        </button>
+      </div>
+
+      <div class="miniapp-mode-panel" :class="{ active: miniappReadonlyMode }">
+        <div>
+          <strong>{{ miniappReadonlyMode ? '只读浏览' : '完整功能' }}</strong>
+          <p v-if="miniappReadonlyMode">
+            小程序仅展示已发布笔记及浏览所需内容，不显示登录、发帖、评论、点赞、收藏等互动入口；后端同时拒绝对应的小程序请求。
+          </p>
+          <p v-else>
+            小程序可正常登录、上传图片或视频、发帖及参与评论等互动。
+          </p>
+        </div>
+        <span class="mode-state" :class="{ enabled: miniappReadonlyMode }">
+          {{ miniappReadonlyMode ? '已开启' : '未开启' }}
+        </span>
+      </div>
+
+      <div class="settings-note">
+        该设置只影响携带小程序客户端标识的请求，不影响现有网页端。切换后小程序会在下次进入页面时重新读取状态。
+      </div>
+    </section>
+
     <MessageToast v-if="showToast" :message="toastMessage" :type="toastType" @close="showToast = false" />
   </div>
 </template>
@@ -54,8 +87,10 @@ const reviewModes = [
 ]
 
 const currentMode = ref('all')
+const miniappReadonlyMode = ref(false)
 const loading = ref(true)
 const saving = ref(false)
+const savingMiniapp = ref(false)
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
@@ -82,6 +117,7 @@ const loadSettings = async () => {
     const result = await response.json()
     if (result.code === 200 && result.data?.post_review_mode) {
       currentMode.value = result.data.post_review_mode
+      miniappReadonlyMode.value = Boolean(result.data.miniapp_readonly_mode)
     } else {
       showMessage(result.message || '读取系统设置失败', 'error')
     }
@@ -106,6 +142,7 @@ const changeReviewMode = async (mode) => {
     const result = await response.json()
     if (result.code === 200) {
       currentMode.value = result.data?.post_review_mode || mode
+      miniappReadonlyMode.value = Boolean(result.data?.miniapp_readonly_mode)
       showMessage(result.message || '设置已保存')
     } else {
       showMessage(result.message || '保存系统设置失败', 'error')
@@ -118,6 +155,33 @@ const changeReviewMode = async (mode) => {
   }
 }
 
+const toggleMiniappReadonlyMode = async () => {
+  if (savingMiniapp.value || loading.value) return
+
+  const nextMode = !miniappReadonlyMode.value
+  savingMiniapp.value = true
+  try {
+    const response = await fetch(`${apiConfig.baseURL}/admin/system-settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ miniapp_readonly_mode: nextMode })
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      miniappReadonlyMode.value = Boolean(result.data?.miniapp_readonly_mode)
+      if (result.data?.post_review_mode) currentMode.value = result.data.post_review_mode
+      showMessage(result.message || '设置已保存')
+    } else {
+      showMessage(result.message || '保存小程序设置失败', 'error')
+    }
+  } catch (error) {
+    console.error('保存小程序设置失败:', error)
+    showMessage('保存小程序设置失败', 'error')
+  } finally {
+    savingMiniapp.value = false
+  }
+}
+
 onMounted(loadSettings)
 </script>
 
@@ -125,6 +189,9 @@ onMounted(loadSettings)
 .system-settings-page {
   width: 100%;
   max-width: 980px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .settings-card {
@@ -187,7 +254,8 @@ onMounted(loadSettings)
   box-shadow: 0 0 0 2px var(--primary-color-shadow);
 }
 
-.review-mode-button:disabled {
+.review-mode-button:disabled,
+.toggle-switch:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
@@ -221,6 +289,85 @@ onMounted(loadSettings)
   line-height: 1.65;
 }
 
+.miniapp-header {
+  align-items: center;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bg-color-tertiary);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-switch.active {
+  background: var(--primary-color);
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+  transition: transform 0.2s ease;
+}
+
+.toggle-switch.active .toggle-knob {
+  transform: translateX(22px);
+}
+
+.miniapp-mode-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px;
+  border: 1px solid var(--border-color-primary);
+  border-radius: 10px;
+  background: var(--bg-color-secondary);
+}
+
+.miniapp-mode-panel.active {
+  border-color: var(--primary-color);
+  background: var(--bg-color-primary);
+}
+
+.miniapp-mode-panel strong {
+  color: var(--text-color-primary);
+  font-size: 15px;
+}
+
+.miniapp-mode-panel p {
+  margin: 7px 0 0;
+  color: var(--text-color-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.mode-state {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--bg-color-tertiary);
+  color: var(--text-color-secondary);
+  font-size: 12px;
+}
+
+.mode-state.enabled {
+  background: var(--primary-color);
+  color: #fff;
+}
+
 .settings-note {
   margin-top: 16px;
   padding-top: 14px;
@@ -237,6 +384,11 @@ onMounted(loadSettings)
 
   .review-mode-button {
     min-height: auto;
+  }
+
+  .miniapp-mode-panel {
+    flex-direction: column;
+    gap: 12px;
   }
 }
 </style>
