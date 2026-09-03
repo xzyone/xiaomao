@@ -14,4 +14,3 @@
 .primary-button { background: #ff2442; color: #fff; }
 .guest-card { padding-top: 180rpx; }
 .guest-title { font-size: 40rpx; font-weight: 800; }
-.guest-desc { margin-top: 16rpx; color: #888; text-align: center; line-height: 1.7; font-size: 25rpx; }

@@ -14,7 +14,6 @@
   </view>
   <view wx:elif="{{!loading}}" class="guest-card">
     <text class="guest-title">登录小毛毛</text>
-    <text class="guest-desc">登录后可以发帖、上传毛毛的照片和视频，也可以参与评论。</text>
     <button class="primary-button" bindtap="goLogin">去登录</button>
   </view>
   <bottom-nav current="profile" readonly-mode="{{readonlyMode}}" />

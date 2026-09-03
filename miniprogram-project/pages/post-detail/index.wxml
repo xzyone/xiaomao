@@ -4,7 +4,8 @@
       <image class="detail-image" src="{{item}}" mode="aspectFit" data-url="{{item}}" bindtap="previewImage" />
     </swiper-item>
   </swiper>
-  <video wx:if="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.cover_url || (post.images && post.images[0])}}" controls object-fit="contain" />
+  <video wx:if="{{post.type == 2 && post.video_url && post.poster_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.poster_url}}" controls object-fit="contain" />
+  <video wx:elif="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" controls object-fit="contain" />
   <view class="detail-content">
     <view class="author-row">
       <view class="author-main">
