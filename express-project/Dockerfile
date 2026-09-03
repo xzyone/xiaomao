@@ -1,32 +1,21 @@
-# 使用官方Node.js运行时作为基础镜像
 FROM node:18-alpine
 
-# 设置工作目录
+ENV NODE_ENV=production
+
 WORKDIR /app
 
-# 复制package.json和package-lock.json
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# 安装依赖
-RUN npm install --only=production
+COPY --chown=node:node . .
 
-# 复制应用源代码
-COPY . .
+# node:18-alpine already provides the node user with UID 1000.
+# docker-compose overrides the runtime group to GID 1001 to match xzy:User on the NAS.
+USER node
 
-# 创建非root用户
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# 更改文件所有权
-RUN chown -R nodejs:nodejs /app
-USER nodejs
-
-# 暴露端口
 EXPOSE 3001
 
-# 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
-# 启动应用
 CMD ["npm", "start"]
