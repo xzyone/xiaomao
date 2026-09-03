@@ -1,12 +1,15 @@
 <view class="page-shell home-page">
   <view class="brand-row">
-    <view><text class="brand-title">小毛毛</text><text class="brand-subtitle">毛毛的快乐狗生</text></view>
+    <view class="brand-main">
+      <text class="brand-title">小毛毛</text>
+      <text class="brand-subtitle">毛毛的快乐狗生</text>
+    </view>
     <view wx:if="{{readonlyMode}}" class="readonly-pill">浏览模式</view>
   </view>
   <scroll-view class="channel-scroll" scroll-x enable-flex show-scrollbar="false">
     <view class="channel-list">
       <view class="channel-item {{currentCategory === 'recommend' ? 'active' : ''}}" data-category="recommend" bindtap="changeCategory">推荐</view>
-      <view wx:for="{{categories}}" wx:key="id" class="channel-item {{currentCategory == item.id ? 'active' : ''}}" data-category="{{item.id}}" bindtap="changeCategory">{{item.category_title || item.name}}</view>
+      <view wx:for="{{categories}}" wx:key="id" class="channel-item {{currentCategory == item.id ? 'active' : ''}}" data-category="{{item.id}}" bindtap="changeCategory">{{item.name}}</view>
     </view>
   </scroll-view>
   <view class="waterfall">
