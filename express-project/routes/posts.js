@@ -8,6 +8,7 @@ const { extractMentionedUsers, hasMentions } = require('../utils/mentionParser')
 const { batchCleanupFiles } = require('../utils/fileCleanup');
 const { sanitizeContent } = require('../utils/contentSecurity');
 const { getContentLocation } = require('../utils/contentLocation');
+const { resolvePostStatus, queuePostAudit } = require('../utils/reviewPolicy');
 
 // 获取笔记列表
 router.get('/', optionalAuth, async (req, res) => {
@@ -555,6 +556,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const { title, content, category_id, images, video, tags, status, type } = req.body;
     const userId = req.user.id;
     const postType = type || 1; // 默认为图文类型
+    const requestedStatus = status === undefined ? 0 : Number(status);
 
     console.log('=== 创建笔记请求 ===');
     console.log('用户ID:', userId);
@@ -568,7 +570,7 @@ router.post('/', authenticateToken, async (req, res) => {
     console.log('标签:', tags);
 
     // 验证必填字段：发布时要求标题和内容，草稿时不强制要求
-    if (status !== 1 && (!title || !content)) {
+    if (requestedStatus !== 1 && (!title || !content)) {
       console.log('❌ 验证失败: 标题或内容为空');
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ code: RESPONSE_CODES.VALIDATION_ERROR, message: '发布时标题和内容不能为空' });
     }
@@ -582,14 +584,20 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ code: RESPONSE_CODES.VALIDATION_ERROR, message: '无效的发布类型' });
     }
 
+    // 客户端只表达“草稿/发布”意图，最终是否审核由服务端系统设置决定。
+    const effectiveStatus = await resolvePostStatus({
+      userId,
+      requestedStatus
+    });
+
     // 草稿不记录属地；首次提交/发布时固化当次请求的IP属地
-    const ipLocation = String(status) === '1' ? null : await getContentLocation(req);
+    const ipLocation = effectiveStatus === 1 ? null : await getContentLocation(req);
 
     // 插入笔记
     console.log('📝 开始插入笔记到数据库...');
     const [result] = await pool.execute(
       'INSERT INTO posts (user_id, title, content, category_id, status, type, ip_location) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [userId, title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), postType, ipLocation]
+      [userId, title || '', sanitizedContent, category_id || null, effectiveStatus.toString(), postType, ipLocation]
     );
 
     const postId = result.insertId;
@@ -672,7 +680,7 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     // 处理@用户通知（仅在已发布状态时）
-    if (status === 0 && content && hasMentions(content)) {
+    if (effectiveStatus === 0 && content && hasMentions(content)) {
       const mentionedUsers = extractMentionedUsers(content);
 
       for (const mentionedUser of mentionedUsers) {
@@ -704,13 +712,10 @@ router.post('/', authenticateToken, async (req, res) => {
 
     console.log(`✅ 创建笔记成功 - 用户ID: ${userId}, 笔记ID: ${postId}, 类型: ${postType}`);
 
-    // 如果笔记状态为待审核(status=2)，在audit表中添加审核记录
-    if (status === 2) {
+    // 只有服务端策略最终判定为待审核时才创建审核记录。
+    if (effectiveStatus === 2) {
       try {
-        await pool.execute(
-          'INSERT INTO audit (type, target_id, status) VALUES (?, ?, ?)',
-          [3, postId, 0]
-        );
+        await queuePostAudit(postId);
         console.log(`✅ 审核记录创建成功 - 笔记ID: ${postId}`);
       } catch (error) {
         console.error('❌ 创建审核记录失败:', error);
@@ -719,8 +724,12 @@ router.post('/', authenticateToken, async (req, res) => {
 
     res.json({
       code: RESPONSE_CODES.SUCCESS,
-      message: '发布成功',
-      data: { id: postId }
+      message: effectiveStatus === 1 ? '草稿保存成功' : (effectiveStatus === 2 ? '已提交审核' : '发布成功'),
+      data: {
+        id: postId,
+        status: effectiveStatus,
+        review_required: effectiveStatus === 2
+      }
     });
   } catch (error) {
     console.error('❌ 创建笔记失败:', error);
@@ -992,11 +1001,11 @@ router.post('/:id/collect', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const postId = req.params.id;
-    const { title, content, category_id, images, video, tags, status } = req.body;
+    const { title, content, category_id, images, video, video_url, cover_url, tags, status } = req.body;
     const userId = req.user.id;
 
     // 验证必填字段：如果不是草稿（status=2），则要求标题、内容和分类不能为空
-    if (status !== 1 && (!title || !content || !category_id)) {
+    if (Number(status) !== 1 && (!title || !content || !category_id)) {
       console.log('验证失败 - 必填字段缺失:', { title, content, category_id, status });
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ code: RESPONSE_CODES.VALIDATION_ERROR, message: '发布时标题、内容和分类不能为空' });
     }
@@ -1018,21 +1027,28 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const postType = postRows[0].type;
 
-    // 在更新之前获取原始笔记信息（用于对比@用户变化）
+    // 在更新之前获取原始笔记信息（用于对比@用户变化和审核状态）
     const [originalPostRows] = await pool.execute('SELECT status, content, ip_location FROM posts WHERE id = ?', [postId.toString()]);
-    const wasOriginallyDraft = originalPostRows.length > 0 && originalPostRows[0].status === 1;
+    const originalStatus = originalPostRows.length > 0 ? Number(originalPostRows[0].status) : 1;
+    const requestedStatus = status === undefined ? originalStatus : Number(status);
+    const effectiveStatus = await resolvePostStatus({
+      userId,
+      requestedStatus,
+      currentStatus: originalStatus
+    });
+    const wasOriginallyDraft = originalStatus === 1;
     const originalContent = originalPostRows.length > 0 ? originalPostRows[0].content : '';
     let ipLocation = originalPostRows.length > 0 ? originalPostRows[0].ip_location : null;
 
-    // 只有草稿首次提交时记录发布属地；已提交内容后续编辑不改变历史属地
-    if (wasOriginallyDraft && String(status) !== '1') {
+    // 草稿或驳回内容重新提交且尚无历史属地时，记录本次提交属地。
+    if (!ipLocation && (originalStatus === 1 || originalStatus === 3) && effectiveStatus !== 1) {
       ipLocation = await getContentLocation(req);
     }
 
     // 更新笔记基本信息
     await pool.execute(
       'UPDATE posts SET title = ?, content = ?, category_id = ?, status = ?, ip_location = ? WHERE id = ?',
-      [title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), ipLocation, postId.toString()]
+      [title || '', sanitizedContent, category_id || null, effectiveStatus.toString(), ipLocation, postId.toString()]
     );
 
     // 根据笔记类型处理媒体文件
@@ -1168,7 +1184,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
 
     // 处理@用户通知的逻辑
-    if (status === 0 && content) { // 只有在已发布状态下才处理@通知
+    if (effectiveStatus === 0 && content) { // 只有实际发布状态才处理@通知
       // 获取新内容中的@用户
       const newMentionedUsers = hasMentions(content) ? extractMentionedUsers(content) : [];
       const newMentionedUserIds = new Set(newMentionedUsers.map(user => user.userId));
@@ -1238,12 +1254,24 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     }
 
-    console.log(`更新笔记成功 - 用户ID: ${userId}, 笔记ID: ${postId}`);
+    // 草稿/驳回内容提交后，如果实际进入待审核，则创建或重置审核记录。
+    if (effectiveStatus === 2 && originalStatus !== 2) {
+      await queuePostAudit(postId);
+    }
 
+    console.log(`更新笔记成功 - 用户ID: ${userId}, 笔记ID: ${postId}, 状态: ${effectiveStatus}`);
+
+    const isSubmission = originalStatus === 1 || originalStatus === 3;
     res.json({
       code: RESPONSE_CODES.SUCCESS,
-      message: '更新成功',
-      data: { id: postId }
+      message: isSubmission
+        ? (effectiveStatus === 2 ? '已提交审核' : '发布成功')
+        : '更新成功',
+      data: {
+        id: postId,
+        status: effectiveStatus,
+        review_required: effectiveStatus === 2
+      }
     });
   } catch (error) {
     console.error('更新笔记失败:', error);

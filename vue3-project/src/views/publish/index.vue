@@ -606,7 +606,7 @@ const handlePublish = async () => {
       tags: form.tags,
       category_id: form.category_id,
       type: uploadType.value === 'image' ? 1 : 2, // 1: 图文, 2: 视频
-      status: 2 // 发布状态：2=待审核
+      status: 0 // 发布意图：最终是否审核由后端系统设置决定
     }
 
 
@@ -630,7 +630,7 @@ const handlePublish = async () => {
 
 
     if (response.success) {
-      showMessage('发布成功！', 'success')
+      showMessage(response.message || '发布成功！', 'success')
       resetForm()
 
       setTimeout(() => {

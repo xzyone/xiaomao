@@ -33,6 +33,7 @@ import AdminSessionManagement from '@/views/admin/AdminSessionManagement.vue'
 import AdminManagement from '@/views/admin/AdminManagement.vue'
 import AuditManagement from '@/views/admin/AuditManagement.vue'
 import PostAudit from '@/views/admin/PostAudit.vue'
+import SystemSettings from '@/views/admin/SystemSettings.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -191,6 +192,11 @@ const router = createRouter({
           path: 'monitor',
           name: 'admin_monitor',
           component: AdminMonitor
+        },
+        {
+          path: 'system-settings',
+          name: 'admin_system_settings',
+          component: SystemSettings
         },
         {
           path: 'users',

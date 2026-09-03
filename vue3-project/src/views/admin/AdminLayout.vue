@@ -165,7 +165,7 @@ const isFilterOpen = ref(false)
 
 // 判断当前页面是否需要显示筛选按钮
 const shouldShowFilter = computed(() => {
-  const noFilterRoutes = ['/admin/api-docs', '/admin/monitor']
+  const noFilterRoutes = ['/admin/api-docs', '/admin/monitor', '/admin/system-settings']
   return !noFilterRoutes.includes(route.path)
 })
 
@@ -267,6 +267,7 @@ watch(isFilterOpen, (newValue) => {
 const menuItems = [
   { path: '/admin/api-docs', title: 'API文档', icon: 'data' },
   { path: '/admin/monitor', title: '动态监控', icon: 'monitor' },
+  { path: '/admin/system-settings', title: '系统设置', icon: 'setting' },
   { path: '/admin/users', title: '用户管理', icon: 'user' },
   { path: '/admin/posts', title: '笔记管理', icon: 'post' },
   { path: '/admin/post-audit', title: '笔记审核', icon: 'audit' },
@@ -294,6 +295,7 @@ const currentPageDescription = computed(() => {
   const descriptions = {
     '/admin/api-docs': '查看和测试API接口文档',
     '/admin/monitor': '查看系统最近动态和活动监控',
+    '/admin/system-settings': '配置站点级功能和内容策略',
     '/admin/users': '管理用户账户和权限',
     '/admin/post-audit': '管理笔记审核',
     '/admin/posts': '管理用户发布的笔记内容',
