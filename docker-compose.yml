@@ -9,8 +9,7 @@ services:
     container_name: xiaomao-backend
     restart: unless-stopped
 
-    # NAS user xzy:User
-    user: "1000:1001"
+    user: "${XIAOMAO_UID:-1000}:${XIAOMAO_GID:-1000}"
 
     env_file:
       - ./.env
@@ -19,7 +18,7 @@ services:
       - "127.0.0.1:1220:3001"
 
     volumes:
-      - "${XIAOMAO_UPLOAD_DIR:-/vol2/1000/web/data/xiaomao/uploads}:/app/uploads"
+      - "${XIAOMAO_UPLOAD_DIR:?Set XIAOMAO_UPLOAD_DIR in .env}:/app/uploads"
 
     networks:
       - 1panel-network
