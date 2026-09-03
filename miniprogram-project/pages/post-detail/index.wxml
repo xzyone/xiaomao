@@ -1,12 +1,4 @@
 <view class="detail-page" wx:if="{{post}}">
-  <view class="post-author-header">
-    <image class="avatar" src="{{post.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load binderror="onPostAvatarError" />
-    <view class="author-copy">
-      <text class="nickname">{{post.nickname || '匿名用户'}}</text>
-      <text class="author-location" wx:if="{{post.location}}">IP属地 · {{post.location}}</text>
-    </view>
-  </view>
-
   <view wx:if="{{post.type != 2 && displayImages && displayImages.length}}" class="media-stage" style="height: {{currentMediaHeight}}rpx;">
     <swiper class="media-swiper" style="height: {{currentMediaHeight}}rpx;" indicator-dots="{{displayImages.length > 1}}" circular="{{displayImages.length > 1}}" bindchange="onMediaChange">
       <swiper-item wx:for="{{displayImages}}" wx:key="*this">
@@ -15,14 +7,21 @@
     </swiper>
     <button wx:if="{{currentImageCanShowOriginal}}" class="original-image-button" catchtap="showOriginalImage">原图</button>
   </view>
-  <video wx:if="{{post.type == 2 && post.video_url && post.poster_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.poster_url}}" controls object-fit="contain" />
-  <video wx:elif="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" controls object-fit="contain" />
+  <video wx:if="{{post.type == 2 && post.video_url && post.poster_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.poster_url}}" controls object-fit="contain" show-mute-btn="{{true}}" show-fullscreen-btn="{{true}}" show-play-btn="{{true}}" show-center-play-btn="{{true}}" enable-progress-gesture="{{true}}" vslide-gesture="{{true}}" vslide-gesture-in-fullscreen="{{true}}" />
+  <video wx:elif="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" controls object-fit="contain" show-mute-btn="{{true}}" show-fullscreen-btn="{{true}}" show-play-btn="{{true}}" show-center-play-btn="{{true}}" enable-progress-gesture="{{true}}" vslide-gesture="{{true}}" vslide-gesture-in-fullscreen="{{true}}" />
+
+  <view class="post-author-header">
+    <image class="avatar" src="{{post.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load binderror="onPostAvatarError" />
+    <view class="author-copy">
+      <text class="nickname">{{post.nickname || '匿名用户'}}</text>
+    </view>
+  </view>
 
   <view class="detail-content">
     <text class="title">{{post.title}}</text>
     <text class="content">{{contentText}}</text>
     <view class="tag-row" wx:if="{{post.tags && post.tags.length}}"><text wx:for="{{post.tags}}" wx:key="id" class="tag">#{{item.name}}</text></view>
-    <text class="date">{{displayDate}} · 浏览 {{post.view_count || 0}}</text>
+    <text class="date">{{displayDate}} · 浏览 {{post.view_count || 0}}{{post.location ? ' · ' + post.location : ''}}</text>
   </view>
 
   <view wx:if="{{!readonlyMode}}" class="comments-section">
