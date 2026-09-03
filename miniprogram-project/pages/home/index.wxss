@@ -2,7 +2,6 @@
 .brand-row { padding: 28rpx 4rpx 14rpx; display: flex; align-items: center; justify-content: space-between; }
 .brand-title { display: block; font-size: 42rpx; font-weight: 800; letter-spacing: -1rpx; color: #222; }
 .brand-subtitle { display: block; margin-top: 4rpx; font-size: 22rpx; color: #999; }
-.readonly-pill { padding: 8rpx 16rpx; border-radius: 999rpx; background: #f7f7f7; color: #858585; font-size: 20rpx; }
 .channel-scroll { width: 100%; white-space: nowrap; margin-bottom: 18rpx; }
 .channel-list { display: flex; align-items: center; gap: 34rpx; min-width: max-content; padding: 12rpx 4rpx 16rpx; }
 .channel-item { color: #858585; font-size: 27rpx; line-height: 44rpx; position: relative; }
