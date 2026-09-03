@@ -20,6 +20,7 @@ const { miniappReadonlyGuard } = require('./utils/miniappPolicy');
 const { protectPostListVisibility } = require('./middleware/postVisibility');
 
 // 导入路由模块
+const authLoginRoutes = require('./routes/authLogin');
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 const postsRoutes = require('./routes/posts');
@@ -93,6 +94,8 @@ app.use('/api', miniappReadonlyGuard);
 app.use('/api/miniapp', miniappRoutes);
 app.use('/api/auth', authLimiter);
 app.use('/api/upload', uploadLimiter);
+// 登录路由放在原认证路由之前，用于支持网页端与小程序多设备同时在线。
+app.use('/api/auth', authLoginRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/posts', protectPostListVisibility, postsRoutes);
