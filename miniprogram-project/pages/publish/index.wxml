@@ -1,0 +1,41 @@
+<view class="publish-page">
+  <view class="type-tabs">
+    <view class="type-tab {{type === 1 ? 'active' : ''}}" data-type="1" bindtap="setType">图文</view>
+    <view class="type-tab {{type === 2 ? 'active' : ''}}" data-type="2" bindtap="setType">视频</view>
+  </view>
+
+  <view wx:if="{{type === 1}}" class="media-grid">
+    <view wx:for="{{images}}" wx:key="*this" class="media-item">
+      <image class="media-image" src="{{item}}" mode="aspectFill" />
+      <view class="remove" data-index="{{index}}" bindtap="removeImage">×</view>
+    </view>
+    <view wx:if="{{images.length < 9}}" class="add-media" bindtap="chooseImages">
+      <text class="plus">＋</text><text>照片</text>
+    </view>
+  </view>
+
+  <view wx:if="{{type === 2}}" class="video-zone">
+    <view wx:if="{{video}}" class="video-preview-wrap">
+      <video class="video-preview" src="{{video.path}}" poster="{{video.thumbPath}}" controls />
+      <view class="remove video-remove" bindtap="removeVideo">×</view>
+    </view>
+    <view wx:else class="add-video" bindtap="chooseVideo"><text class="plus">＋</text><text>选择视频</text></view>
+  </view>
+
+  <view class="editor-card">
+    <input class="title-input" maxlength="40" value="{{title}}" placeholder="填写标题会有更多赞哦" bindinput="onTitleInput" />
+    <textarea class="content-input" maxlength="2000" auto-height value="{{content}}" placeholder="分享毛毛的这一刻..." bindinput="onContentInput" />
+  </view>
+
+  <view class="setting-list">
+    <picker mode="selector" range="{{categories}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange">
+      <view class="setting-row"><text>分类</text><text class="setting-value">{{categoryIndex >= 0 ? categories[categoryIndex].name : '选择分类'}} ›</text></view>
+    </picker>
+    <view class="setting-row tags-row">
+      <text># 标签</text>
+      <input class="tags-input" value="{{tagsText}}" placeholder="多个标签用空格或逗号分隔" bindinput="onTagsInput" />
+    </view>
+  </view>
+
+  <button class="publish-button" loading="{{submitting}}" bindtap="submit">发布笔记</button>
+</view>
