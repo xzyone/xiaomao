@@ -1,0 +1,21 @@
+<view class="page-shell profile-page">
+  <view wx:if="{{user}}" class="profile-card">
+    <image wx:if="{{user.avatar}}" class="profile-avatar" src="{{user.avatar}}" mode="aspectFill" />
+    <view wx:else class="profile-avatar avatar-empty"></view>
+    <text class="nickname">{{user.nickname}}</text>
+    <text class="account">毛毛号：{{user.user_id}}</text>
+    <text class="bio">{{user.bio || '还没有个人简介'}}</text>
+    <view class="stats-row">
+      <view><text class="number">{{user.follow_count || 0}}</text><text class="stat-label">关注</text></view>
+      <view><text class="number">{{user.fans_count || 0}}</text><text class="stat-label">粉丝</text></view>
+      <view><text class="number">{{user.like_count || 0}}</text><text class="stat-label">获赞</text></view>
+    </view>
+    <button class="secondary-button" bindtap="logout">退出登录</button>
+  </view>
+  <view wx:elif="{{!loading}}" class="guest-card">
+    <text class="guest-title">登录小毛毛</text>
+    <text class="guest-desc">登录后可以发帖、上传毛毛的照片和视频，也可以参与评论。</text>
+    <button class="primary-button" bindtap="goLogin">去登录</button>
+  </view>
+  <bottom-nav current="profile" readonly-mode="{{readonlyMode}}" />
+</view>
