@@ -33,6 +33,31 @@ Page({
     }
   },
 
+  async onShow() {
+    if (!wx.getStorageSync('token')) return
+    const state = await getApp().validateSession(false)
+    if (state === false) wx.redirectTo({ url: '/pages/login/index' })
+  },
+
+  async ensureSession() {
+    if (!wx.getStorageSync('token')) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      wx.navigateTo({ url: '/pages/login/index' })
+      return false
+    }
+
+    const state = await getApp().validateSession(true)
+    if (state === true) return true
+
+    if (state === false) {
+      setTimeout(() => wx.navigateTo({ url: '/pages/login/index' }), 300)
+      return false
+    }
+
+    wx.showToast({ title: '暂时无法验证登录状态，请检查网络', icon: 'none' })
+    return false
+  },
+
   setType(event) {
     const type = Number(event.currentTarget.dataset.type)
     if (type === this.data.type) return
@@ -44,6 +69,7 @@ Page({
   onCategoryChange(event) { this.setData({ categoryIndex: Number(event.detail.value) }) },
 
   async chooseImages() {
+    if (!(await this.ensureSession())) return
     const remain = 9 - this.data.images.length
     if (remain <= 0) return
     try {
@@ -59,6 +85,7 @@ Page({
   },
 
   async chooseVideo() {
+    if (!(await this.ensureSession())) return
     try {
       const result = await wx.chooseMedia({
         count: 1,
@@ -110,6 +137,8 @@ Page({
 
   async submit() {
     if (this.data.submitting || this.data.uploading) return
+    if (!(await this.ensureSession())) return
+
     const title = this.data.title.trim()
     const content = this.data.content.trim()
     if (!title || !content) return wx.showToast({ title: '标题和正文不能为空', icon: 'none' })
