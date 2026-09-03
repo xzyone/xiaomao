@@ -25,6 +25,9 @@ Page({
   },
   async onLoad(options) {
     this.setData({ id: options.id })
+    if (wx.showShareMenu) {
+      wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] })
+    }
     await this.syncMode()
     await this.loadPost()
     if (!this.data.readonlyMode) await this.loadComments()
@@ -133,6 +136,26 @@ Page({
   previewImage(event) {
     const current = event.currentTarget.dataset.url
     wx.previewImage({ current, urls: this.data.displayImages.slice() })
+  },
+  onShareAppMessage() {
+    const post = this.data.post || {}
+    const imageUrl = this.data.displayImages[0] || post.poster_url || ''
+    const shareData = {
+      title: post.title || '小毛毛的快乐狗生',
+      path: `/pages/post-detail/index?id=${this.data.id}`
+    }
+    if (imageUrl) shareData.imageUrl = imageUrl
+    return shareData
+  },
+  onShareTimeline() {
+    const post = this.data.post || {}
+    const imageUrl = this.data.displayImages[0] || post.poster_url || ''
+    const shareData = {
+      title: post.title || '小毛毛的快乐狗生',
+      query: `id=${encodeURIComponent(this.data.id || '')}`
+    }
+    if (imageUrl) shareData.imageUrl = imageUrl
+    return shareData
   },
   onCommentInput(event) { this.setData({ commentText: event.detail.value }) },
   handleCommentInputTap() { if (!this.data.loggedIn) this.goLogin() },
