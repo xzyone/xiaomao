@@ -5,7 +5,9 @@ App({
     readonlyMode: false,
     interactiveEnabled: true,
     configLoaded: false,
-    user: null
+    user: null,
+    sessionValid: false,
+    lastSessionCheckAt: 0
   },
 
   async onLaunch() {
@@ -14,11 +16,47 @@ App({
   },
 
   async onShow() {
-    if (this.globalData.configLoaded) await this.refreshMiniappConfig()
+    const tasks = []
+    if (this.globalData.configLoaded) tasks.push(this.refreshMiniappConfig())
+    if (wx.getStorageSync('token')) tasks.push(this.validateSession(true))
+    if (tasks.length) await Promise.allSettled(tasks)
   },
 
   restoreSession() {
     this.globalData.user = wx.getStorageSync('user') || null
+    this.globalData.sessionValid = Boolean(wx.getStorageSync('token'))
+  },
+
+  async validateSession(force = false) {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      this.globalData.user = null
+      this.globalData.sessionValid = false
+      return false
+    }
+
+    const now = Date.now()
+    if (!force && this.globalData.sessionValid && now - this.globalData.lastSessionCheckAt < 30000) {
+      return true
+    }
+
+    try {
+      const user = await api.getCurrentUser()
+      this.globalData.user = user
+      this.globalData.sessionValid = true
+      this.globalData.lastSessionCheckAt = now
+      wx.setStorageSync('user', user)
+      return true
+    } catch (error) {
+      if (error && error.statusCode === 401) {
+        this.globalData.user = null
+        this.globalData.sessionValid = false
+        this.globalData.lastSessionCheckAt = now
+        return false
+      }
+      console.warn('校验登录状态失败:', error)
+      return null
+    }
   },
 
   async refreshMiniappConfig() {
