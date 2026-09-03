@@ -19,6 +19,9 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Fix patch cardinality
+        run: python .github/scripts/fix_review_modes_patcher.py
+
       - name: Apply implementation
         run: python .github/scripts/apply_review_modes.py
 
@@ -57,6 +60,7 @@ jobs:
         run: |
           rm -f .github/workflows/apply-review-modes.yml
           rm -f .github/scripts/apply_review_modes.py
+          rm -f .github/scripts/fix_review_modes_patcher.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
