@@ -1,16 +1,19 @@
 FROM node:18-alpine
 
-ENV NODE_ENV=production
-
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --omit=dev
-
+# Copy application source first. node_modules is excluded by .dockerignore.
+# Installing dependencies after the final COPY prevents a later COPY layer from
+# replacing or emptying files created by npm ci on some NAS/overlay setups.
 COPY --chown=node:node . .
 
-# node:18-alpine already provides the node user with UID 1000.
-# docker-compose overrides the runtime group to GID 1001 to match xzy:User on the NAS.
+RUN npm ci --omit=dev \
+    && test -f /app/node_modules/express/package.json \
+    && node -e "console.log('Express:', require.resolve('express'))" \
+    && npm cache clean --force
+
+ENV NODE_ENV=production
+
 USER node
 
 EXPOSE 3001
