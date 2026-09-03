@@ -1,7 +1,6 @@
 <view class="page-shell profile-page">
   <view wx:if="{{user}}" class="profile-card">
-    <image wx:if="{{avatarUrl}}" class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarError" />
-    <view wx:else class="profile-avatar avatar-empty">毛</view>
+    <image class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarError" />
     <text class="nickname">{{user.nickname}}</text>
     <text class="account">毛毛号：{{user.user_id}}</text>
     <text class="bio">{{user.bio || '还没有个人简介'}}</text>
