@@ -77,7 +77,7 @@ Page({
         count: remain,
         mediaType: ['image'],
         sourceType: ['album', 'camera'],
-        sizeType: ['compressed']
+        sizeType: ['original']
       })
       const paths = (result.tempFiles || []).map(file => file.tempFilePath)
       this.setData({ images: this.data.images.concat(paths).slice(0, 9) })
