@@ -3,6 +3,14 @@ import request from './request.js'
 import apiConfig from '@/config/api.js'
 import { hasViewedPost, markPostAsViewed } from '@/utils/viewTracker.js'
 
+const ORIGINAL_IMAGE_ROUTE = '/api/files/images/'
+const THUMBNAIL_ROUTE = '/api/files/thumbnails/'
+
+function toThumbnailUrl(url) {
+  if (typeof url !== 'string' || !url.includes(ORIGINAL_IMAGE_ROUTE)) return url
+  return url.replace(ORIGINAL_IMAGE_ROUTE, THUMBNAIL_ROUTE)
+}
+
 // 转换后端数据格式为前端瀑布流需要的格式
 function transformPostData(backendPost) {
 
@@ -12,16 +20,24 @@ function transformPostData(backendPost) {
 
   const collectCount = backendPost.collect_count || 0
   const commentCount = backendPost.comment_count || 0
+  const images = Array.isArray(backendPost.images) ? backendPost.images : []
+  const thumbnailImages = Array.isArray(backendPost.thumbnail_images) && backendPost.thumbnail_images.length
+    ? backendPost.thumbnail_images
+    : images.map(toThumbnailUrl)
+  const fallbackImage = new URL('@/assets/imgs/未加载.png', import.meta.url).href
 
   const transformedData = {
     id: backendPost.id,
-    image: (backendPost.images && backendPost.images[0]) || new URL('@/assets/imgs/未加载.png', import.meta.url).href,
+    image: thumbnailImages[0] || images[0] || fallbackImage,
+    thumbnail_image: thumbnailImages[0] || null,
+    thumbnail_images: thumbnailImages,
     title: backendPost.title,
     content: backendPost.content,
-    images: backendPost.images || [],
+    images,
     // 视频相关字段
     video_url: backendPost.video_url,
     cover_url: backendPost.cover_url,
+    thumbnail_cover_url: toThumbnailUrl(backendPost.cover_url),
     videos: backendPost.videos || [],
     avatar: backendPost.user_avatar || new URL('@/assets/imgs/avatar.png', import.meta.url).href,
     author: backendPost.nickname || '匿名用户',
@@ -52,7 +68,7 @@ function transformPostData(backendPost) {
     // 保留原始数据以备需要
     originalData: {
       content: backendPost.content,
-      images: backendPost.images || [],
+      images,
       tags: backendPost.tags || [],
       createdAt: backendPost.created_at,
       userId: backendPost.user_id
