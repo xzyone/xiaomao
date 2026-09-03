@@ -1,14 +1,18 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
 # Copy application source first. node_modules is excluded by .dockerignore.
-# Installing dependencies after the final COPY prevents a later COPY layer from
-# replacing or emptying files created by npm ci on some NAS/overlay setups.
+# Install all production dependencies, including Sharp, in one npm pass. This
+# avoids a second dependency-resolution/download step that is slow on NAS builds.
 COPY --chown=node:node . .
 
-RUN npm ci --omit=dev \
-    && npm install --omit=dev --no-save --package-lock=false --include=optional sharp@0.34.4 \
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 10000 \
+    && npm config set fetch-retry-maxtimeout 60000 \
+    && npm config set fetch-timeout 120000 \
+    && npm install --omit=dev --include=optional --no-audit --no-fund sharp@0.34.4 \
     && test -f /app/node_modules/express/package.json \
     && node -e "console.log('Node:', process.version, 'Express:', require.resolve('express'))" \
     && node -e "const sharp=require('sharp'); console.log('Sharp:', sharp.versions.sharp, 'libvips:', sharp.versions.vips)" \
