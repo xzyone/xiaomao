@@ -7,6 +7,7 @@ const NotificationHelper = require('../utils/notificationHelper');
 const { extractMentionedUsers, hasMentions } = require('../utils/mentionParser');
 const { batchCleanupFiles } = require('../utils/fileCleanup');
 const { sanitizeContent } = require('../utils/contentSecurity');
+const { getContentLocation } = require('../utils/contentLocation');
 
 // 获取笔记列表
 router.get('/', optionalAuth, async (req, res) => {
@@ -27,7 +28,7 @@ router.get('/', optionalAuth, async (req, res) => {
       const forcedUserId = currentUserId;
 
       let query = `
-        SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, u.location, u.verified, c.name as category
+        SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, p.ip_location as location, u.verified, c.name as category
         FROM posts p
         LEFT JOIN users u ON p.user_id = u.id
         LEFT JOIN categories c ON p.category_id = c.id
@@ -122,7 +123,7 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     let query = `
-      SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, u.location, u.verified, c.name as category
+      SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, p.ip_location as location, u.verified, c.name as category
       FROM posts p
       LEFT JOIN users u ON p.user_id = u.id
       LEFT JOIN categories c ON p.category_id = c.id
@@ -370,7 +371,7 @@ router.get('/following', authenticateToken, async (req, res) => {
 
     // 查询关注用户的已发布笔记
     const [rows] = await pool.execute(
-      `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, u.location, u.verified, c.name as category
+      `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, p.ip_location as location, u.verified, c.name as category
        FROM posts p
        LEFT JOIN users u ON p.user_id = u.id
        LEFT JOIN categories c ON p.category_id = c.id
@@ -462,7 +463,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     // 获取笔记基本信息
     const [rows] = await pool.execute(
-      `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, u.location, u.verified, c.name as category
+      `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, p.ip_location as location, u.verified, c.name as category
        FROM posts p
        LEFT JOIN users u ON p.user_id = u.id
        LEFT JOIN categories c ON p.category_id = c.id
@@ -581,11 +582,14 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ code: RESPONSE_CODES.VALIDATION_ERROR, message: '无效的发布类型' });
     }
 
+    // 草稿不记录属地；首次提交/发布时固化当次请求的IP属地
+    const ipLocation = String(status) === '1' ? null : await getContentLocation(req);
+
     // 插入笔记
     console.log('📝 开始插入笔记到数据库...');
     const [result] = await pool.execute(
-      'INSERT INTO posts (user_id, title, content, category_id, status, type) VALUES (?, ?, ?, ?, ?, ?)',
-      [userId, title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), postType]
+      'INSERT INTO posts (user_id, title, content, category_id, status, type, ip_location) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId, title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), postType, ipLocation]
     );
 
     const postId = result.insertId;
@@ -741,7 +745,7 @@ router.get('/search', optionalAuth, async (req, res) => {
 
     // 搜索笔记：支持标题和内容搜索（只搜索已通过的笔记）
     const [rows] = await pool.execute(
-      `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, u.location, u.verified
+      `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.id as author_auto_id, p.ip_location as location, u.verified
        FROM posts p
        LEFT JOIN users u ON p.user_id = u.id
        WHERE p.status = 0 AND (p.title LIKE ? OR p.content LIKE ?)
@@ -854,7 +858,7 @@ router.get('/:id/comments', optionalAuth, async (req, res) => {
     // 获取顶级评论（parent_id为NULL）
     const orderBy = sort === 'asc' ? 'ASC' : 'DESC';
     const [rows] = await pool.execute(
-      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, u.location as user_location, u.verified
+      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, c.ip_location as user_location, u.verified
        FROM comments c
        LEFT JOIN users u ON c.user_id = u.id
        WHERE c.post_id = ? AND c.parent_id IS NULL
@@ -1015,14 +1019,20 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const postType = postRows[0].type;
 
     // 在更新之前获取原始笔记信息（用于对比@用户变化）
-    const [originalPostRows] = await pool.execute('SELECT status, content FROM posts WHERE id = ?', [postId.toString()]);
+    const [originalPostRows] = await pool.execute('SELECT status, content, ip_location FROM posts WHERE id = ?', [postId.toString()]);
     const wasOriginallyDraft = originalPostRows.length > 0 && originalPostRows[0].status === 1;
     const originalContent = originalPostRows.length > 0 ? originalPostRows[0].content : '';
+    let ipLocation = originalPostRows.length > 0 ? originalPostRows[0].ip_location : null;
+
+    // 只有草稿首次提交时记录发布属地；已提交内容后续编辑不改变历史属地
+    if (wasOriginallyDraft && String(status) !== '1') {
+      ipLocation = await getContentLocation(req);
+    }
 
     // 更新笔记基本信息
     await pool.execute(
-      'UPDATE posts SET title = ?, content = ?, category_id = ?, status = ? WHERE id = ?',
-      [title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), postId.toString()]
+      'UPDATE posts SET title = ?, content = ?, category_id = ?, status = ?, ip_location = ? WHERE id = ?',
+      [title || '', sanitizedContent, category_id || null, (status !== undefined ? status : 2).toString(), ipLocation, postId.toString()]
     );
 
     // 根据笔记类型处理媒体文件

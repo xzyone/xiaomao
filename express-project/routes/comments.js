@@ -6,6 +6,7 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const NotificationHelper = require('../utils/notificationHelper');
 const { extractMentionedUsers, hasMentions } = require('../utils/mentionParser');
 const { sanitizeContent } = require('../utils/contentSecurity');
+const { getContentLocation } = require('../utils/contentLocation');
 
 // 递归删除评论及其子评论，返回删除的评论总数
 async function deleteCommentRecursive(commentId) {
@@ -46,7 +47,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // 获取顶级评论（parent_id为NULL）
     const [rows] = await pool.execute(
-      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, u.location as user_location, u.verified
+      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, c.ip_location as user_location, u.verified
        FROM comments c
        LEFT JOIN users u ON c.user_id = u.id
        WHERE c.post_id = ? AND c.parent_id IS NULL
@@ -144,10 +145,13 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     }
 
+    // 固化评论/回复发送时的IP属地；查询失败时留空，不阻塞评论
+    const ipLocation = await getContentLocation(req);
+
     // 插入评论
     const [result] = await pool.execute(
-      'INSERT INTO comments (post_id, user_id, content, parent_id) VALUES (?, ?, ?, ?)',
-      [post_id.toString(), userId.toString(), sanitizedContent, parent_id ? parent_id.toString() : null]
+      'INSERT INTO comments (post_id, user_id, content, parent_id, ip_location) VALUES (?, ?, ?, ?, ?)',
+      [post_id.toString(), userId.toString(), sanitizedContent, parent_id ? parent_id.toString() : null, ipLocation]
     );
 
     const commentId = result.insertId;
@@ -214,7 +218,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     // 获取刚创建的评论的完整信息
     const [commentRows] = await pool.execute(
-      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, u.location as user_location, u.verified
+      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, c.ip_location as user_location, u.verified
        FROM comments c
        LEFT JOIN users u ON c.user_id = u.id
        WHERE c.id = ?`,
@@ -250,7 +254,7 @@ router.get('/:id/replies', optionalAuth, async (req, res) => {
 
     // 获取子评论
     const [rows] = await pool.execute(
-      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, u.location as user_location, u.verified
+      `SELECT c.*, u.nickname, u.avatar as user_avatar, u.id as user_auto_id, u.user_id as user_display_id, c.ip_location as user_location, u.verified
        FROM comments c
        LEFT JOIN users u ON c.user_id = u.id
        WHERE c.parent_id = ?

@@ -87,7 +87,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
       // 搜索笔记
       const [postRows] = await pool.execute(
-        `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, u.location
+        `SELECT p.*, u.nickname, u.avatar as user_avatar, u.user_id as author_account, p.ip_location as location
          FROM posts p
          LEFT JOIN users u ON p.user_id = u.id
          ${whereClause}
