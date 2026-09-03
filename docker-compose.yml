@@ -3,20 +3,23 @@ name: xiaomao
 services:
   backend:
     build:
-      context: /vol2/1000/web/xiaomao/express-project
+      context: ./express-project
       dockerfile: Dockerfile
 
     container_name: xiaomao-backend
     restart: unless-stopped
 
+    # NAS user xzy:User
+    user: "1000:1001"
+
     env_file:
-      - /vol2/1000/web/xiaomao/.env
+      - ./.env
 
     ports:
       - "127.0.0.1:1220:3001"
 
     volumes:
-      - /vol2/1000/web/xiaomao/uploads:/app/uploads
+      - "${XIAOMAO_UPLOAD_DIR:-/vol2/1000/web/data/xiaomao/uploads}:/app/uploads"
 
     networks:
       - 1panel-network
