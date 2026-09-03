@@ -8,6 +8,9 @@ Page({
     page: 1, hasMore: true, loading: false, readonlyMode: false
   },
   async onLoad() {
+    if (wx.showShareMenu) {
+      wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] })
+    }
     await this.syncMode()
     await Promise.all([this.loadCategories(), this.loadPosts(true)])
   },
@@ -50,5 +53,18 @@ Page({
     const category = event.currentTarget.dataset.category
     if (String(category) === String(this.data.currentCategory)) return
     this.setData({ currentCategory: category }); this.loadPosts(true)
+  },
+  onShareAppMessage() {
+    return {
+      title: '小毛毛的快乐狗生',
+      path: '/pages/home/index',
+      imageUrl: '/assets/avatar.png'
+    }
+  },
+  onShareTimeline() {
+    return {
+      title: '小毛毛的快乐狗生',
+      imageUrl: '/assets/avatar.png'
+    }
   }
 })
