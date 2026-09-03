@@ -271,7 +271,7 @@ VITE_API_BASE_URL=http://localhost:3001/api
 
 # Application configuration
 VITE_USE_REAL_API=true
-VITE_APP_TITLE=XiaoMao Image-Text Community
+VITE_APP_TITLE=XiaoMao Community
 ```
 
 > 💡 **Configuration Notes**:
