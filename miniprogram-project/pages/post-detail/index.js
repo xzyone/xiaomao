@@ -26,7 +26,10 @@ Page({
   async onLoad(options) {
     this.setData({ id: options.id })
     if (wx.showShareMenu) {
-      wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] })
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
     }
     await this.syncMode()
     await this.loadPost()
