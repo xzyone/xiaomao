@@ -120,10 +120,10 @@ const config = {
     }
   },
 
-  // IP属地查询：两个独立供应商，避免单点故障
+  // IP属地查询：GeoCN 国内精度优先，ipwho.is 作为独立备用
   ipLocation: {
-    primaryApi: process.env.IP_LOCATION_PRIMARY_API || 'https://ipwho.is',
-    backupApi: process.env.IP_LOCATION_BACKUP_API || 'https://ipaddress.you/api/ip',
+    primaryApi: process.env.IP_LOCATION_PRIMARY_API || 'https://ip.netart.cn',
+    backupApi: process.env.IP_LOCATION_BACKUP_API || 'https://ipwho.is',
     primaryTimeout: parseInt(process.env.IP_LOCATION_PRIMARY_TIMEOUT) || 5000,
     backupTimeout: parseInt(process.env.IP_LOCATION_BACKUP_TIMEOUT) || 5000
   }
