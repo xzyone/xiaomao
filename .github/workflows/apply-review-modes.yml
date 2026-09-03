@@ -1,0 +1,64 @@
+name: Apply three-mode review settings
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-review-modes.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply implementation
+        run: python .github/scripts/apply_review_modes.py
+
+      - name: Validate backend syntax
+        run: |
+          cd express-project
+          npm ci --no-audit --no-fund
+          node --check app.js
+          node --check routes/posts.js
+          node --check routes/systemSettings.js
+          node --check utils/reviewPolicy.js
+
+      - name: Build frontend
+        run: |
+          cd vue3-project
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Validate review mode wiring
+        run: |
+          grep -q "post_review_mode" express-project/utils/reviewPolicy.js
+          grep -q "REVIEW_MODES.VERIFIED" express-project/utils/reviewPolicy.js
+          grep -q "admin/system-settings" express-project/app.js
+          grep -q "system-settings" vue3-project/src/router/index.js
+          grep -q "系统设置" vue3-project/src/views/admin/AdminLayout.vue
+          grep -q "全站免审" vue3-project/src/views/admin/SystemSettings.vue
+          grep -q "认证免审" vue3-project/src/views/admin/SystemSettings.vue
+          grep -q "全站审核" vue3-project/src/views/admin/SystemSettings.vue
+          grep -q "status: 0 // 发布意图" vue3-project/src/views/publish/index.vue
+          if grep -q "status: 2 // 发布状态：2=待审核" vue3-project/src/views/publish/index.vue; then
+            echo "Legacy hard-coded review status still exists" >&2
+            exit 1
+          fi
+
+      - name: Commit implementation and remove temporary files
+        run: |
+          rm -f .github/workflows/apply-review-modes.yml
+          rm -f .github/scripts/apply_review_modes.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add system review mode settings"
+          git push origin HEAD:main
