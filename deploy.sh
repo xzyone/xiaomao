@@ -16,10 +16,10 @@ usage() {
 XiaoMao Linux/NAS deployment helper
 
 Usage:
-  sh deploy.sh deploy    Build frontend and rebuild/start backend (default)
+  sh deploy.sh deploy    Build frontend and rebuild/migrate/start backend (default)
   sh deploy.sh update    git pull --ff-only, then deploy
   sh deploy.sh frontend  Build Vue frontend only
-  sh deploy.sh backend   Rebuild/start backend only
+  sh deploy.sh backend   Rebuild/migrate/start backend only
   sh deploy.sh restart   Restart backend container
   sh deploy.sh stop      Stop backend container
   sh deploy.sh logs      Follow backend logs
@@ -27,6 +27,9 @@ Usage:
 
 Override the build proxy with XIAOMAO_PROXY, or disable it for one run with:
   XIAOMAO_PROXY= sh deploy.sh deploy
+
+Database schema migrations run automatically after a successful backend image build
+and before the backend container is replaced.
 
 This script never runs git stash, git clean, docker compose down -v, or volume prune.
 EOF
@@ -109,6 +112,11 @@ build_frontend() {
   echo "Frontend ready: $FRONTEND_DIR/dist"
 }
 
+run_database_migrations() {
+  echo "Running database migrations..."
+  docker compose run --rm --no-deps backend node scripts/migrate-database.js
+}
+
 build_backend() {
   echo "Building backend..."
   show_proxy
@@ -119,6 +127,10 @@ build_backend() {
     --build-arg http_proxy="$PROXY_URL" \
     --build-arg https_proxy="$PROXY_URL" \
     backend
+
+  # Migrate with the newly built image before replacing the currently running backend.
+  # If migration fails, set -e stops here and the old container remains untouched.
+  run_database_migrations
 
   docker compose up -d backend
   echo "Backend ready: http://127.0.0.1:1220"
