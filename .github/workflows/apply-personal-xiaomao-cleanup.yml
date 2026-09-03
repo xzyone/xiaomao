@@ -1,0 +1,91 @@
+name: Apply personal XiaoMao cleanup
+
+on:
+  push:
+    branches:
+      - chore/personalize-xiaomao-repo
+    paths:
+      - .github/workflows/apply-personal-xiaomao-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: chore/personalize-xiaomao-repo
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Pillow
+        run: python -m pip install --quiet pillow
+
+      - name: Replace legacy avatar and fallback images
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps
+
+          root = Path('vue3-project/src/assets/imgs')
+          icon_path = root / '小毛毛图标.png'
+          wordmark_path = root / '小毛毛.png'
+
+          icon = Image.open(icon_path).convert('RGBA')
+          avatar = Image.new('RGBA', (512, 512), (255, 248, 238, 255))
+          fitted_icon = ImageOps.contain(icon, (420, 420), Image.Resampling.LANCZOS)
+          avatar.alpha_composite(fitted_icon, ((512 - fitted_icon.width) // 2, (512 - fitted_icon.height) // 2))
+          avatar.convert('RGB').save(root / 'avatar.png', 'PNG', optimize=True)
+
+          fallback = Image.new('RGBA', (800, 600), (255, 248, 238, 255))
+          small_icon = ImageOps.contain(icon, (150, 150), Image.Resampling.LANCZOS)
+          fallback.alpha_composite(small_icon, ((800 - small_icon.width) // 2, 155))
+
+          wordmark = Image.open(wordmark_path).convert('RGBA')
+          fitted_wordmark = ImageOps.contain(wordmark, (420, 140), Image.Resampling.LANCZOS)
+          fallback.alpha_composite(fitted_wordmark, ((800 - fitted_wordmark.width) // 2, 335))
+          fallback.convert('RGB').save(root / '未加载.png', 'PNG', optimize=True)
+          PY
+
+      - name: Validate deployment script
+        run: |
+          chmod +x deploy.sh
+          sh -n deploy.sh
+
+      - name: Build frontend
+        working-directory: vue3-project
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Build backend image
+        run: docker build -t xiaomao-backend-test ./express-project
+
+      - name: Validate compose
+        run: |
+          cp .env.example .env
+          docker compose config >/tmp/xiaomao-compose.yml
+          rm -f .env
+
+      - name: Check legacy visible branding
+        run: |
+          if git grep -nE '小石榴|石榴号'; then
+            echo 'Legacy branding remains in tracked text files.' >&2
+            exit 1
+          fi
+
+      - name: Commit generated images and remove one-time workflow
+        run: |
+          rm -f .github/workflows/apply-personal-xiaomao-cleanup.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'chore: refresh XiaoMao default visual assets'
+          git push origin HEAD:chore/personalize-xiaomao-repo
