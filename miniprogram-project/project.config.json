@@ -1,0 +1,9 @@
+{
+  "description": "小毛毛微信小程序",
+  "packOptions": { "ignore": [] },
+  "setting": { "urlCheck": true, "es6": true, "postcss": true, "minified": true, "enhance": true },
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "projectname": "xiaomao-miniprogram",
+  "miniprogramRoot": "./"
+}
