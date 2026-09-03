@@ -1,0 +1,38 @@
+name: Update Sharp Lockfile
+
+on:
+  push:
+    branches:
+      - fix/miniapp-avatar-image-loading
+    paths:
+      - .github/workflows/update-sharp-lock.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/miniapp-avatar-image-loading
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: express-project/package-lock.json
+      - name: Add Sharp as a normal backend dependency
+        working-directory: express-project
+        run: npm install --package-lock-only --save-exact sharp@0.34.4 --no-audit --no-fund
+      - name: Commit dependency files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add express-project/package.json express-project/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No lockfile changes"
+          else
+            git commit -m "build: add sharp as backend dependency"
+            git push origin HEAD:fix/miniapp-avatar-image-loading
+          fi
