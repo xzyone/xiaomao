@@ -16,7 +16,7 @@
 
   <view wx:if="{{type === 2}}" class="video-zone">
     <view wx:if="{{video}}" class="video-preview-wrap">
-      <video class="video-preview" src="{{video.path}}" poster="{{video.thumbPath}}" controls />
+      <video class="video-preview" src="{{video.path}}" controls />
       <view class="remove video-remove" bindtap="removeVideo">×</view>
     </view>
     <view wx:else class="add-video" bindtap="chooseVideo"><text class="plus">＋</text><text>选择视频</text></view>

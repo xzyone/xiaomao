@@ -1,4 +1,6 @@
 const { request, uploadFile } = require('./request')
+const { apiBaseUrl } = require('../config')
+const { normalizePost, normalizeComment, normalizeUser } = require('../utils/media')
 
 function unwrap(result) {
   return result && result.data !== undefined ? result.data : result
@@ -13,11 +15,14 @@ async function getPosts(params = {}) {
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&')
-  return unwrap(await request({ url: `/posts?${query}` }))
+  const result = unwrap(await request({ url: `/posts?${query}` }))
+  if (!result || !Array.isArray(result.posts)) return result
+  return { ...result, posts: result.posts.map(post => normalizePost(post, apiBaseUrl)) }
 }
 
 async function getPostDetail(id, skipViewCount = false) {
-  return unwrap(await request({ url: `/posts/${id}${skipViewCount ? '?skipViewCount=true' : ''}` }))
+  const post = unwrap(await request({ url: `/posts/${id}${skipViewCount ? '?skipViewCount=true' : ''}` }))
+  return normalizePost(post, apiBaseUrl)
 }
 
 async function getCategories() {
@@ -25,19 +30,26 @@ async function getCategories() {
 }
 
 async function getComments(postId, page = 1) {
-  return unwrap(await request({ url: `/comments?post_id=${postId}&page=${page}&limit=20` }))
+  const result = unwrap(await request({ url: `/comments?post_id=${postId}&page=${page}&limit=20` }))
+  if (!result || !Array.isArray(result.comments)) return result
+  return { ...result, comments: result.comments.map(comment => normalizeComment(comment, apiBaseUrl)) }
 }
 
 async function login(userId, password) {
-  return unwrap(await request({ url: '/auth/login', method: 'POST', data: { user_id: userId, password } }))
+  const result = unwrap(await request({ url: '/auth/login', method: 'POST', data: { user_id: userId, password } }))
+  if (!result || !result.user) return result
+  return { ...result, user: normalizeUser(result.user, apiBaseUrl) }
 }
 
 async function getCurrentUser() {
-  return unwrap(await request({ url: '/auth/me' }))
+  return normalizeUser(unwrap(await request({ url: '/auth/me' })), apiBaseUrl)
 }
 
 async function createComment(postId, content) {
-  return unwrap(await request({ url: '/comments', method: 'POST', data: { post_id: postId, content } }))
+  return normalizeComment(
+    unwrap(await request({ url: '/comments', method: 'POST', data: { post_id: postId, content } })),
+    apiBaseUrl
+  )
 }
 
 async function createPost(payload) {
