@@ -6,9 +6,15 @@
 
 1. 用微信开发者工具导入 `miniprogram-project/`。
 2. 将 `project.config.json` 中的 `appid` 改成实际小程序 AppID。
-3. 将 `config.js` 的 `apiBaseUrl` 改成生产 API 地址，例如 `https://example.com/api`。
-4. 在微信公众平台为该 HTTPS 域名配置 request / uploadFile / downloadFile 合法域名。
-5. 开发阶段如需临时跳过域名校验，可在开发者工具本地设置中关闭合法域名检查；正式上传前必须恢复真实域名配置。
+3. 首次使用时复制本地配置：
+
+```bash
+cp config.sample.js config.js
+```
+
+4. 将本地 `config.js` 的 `apiBaseUrl` 改成实际 API 地址，例如 `https://example.com/api`。`config.js` 已加入 `.gitignore`，后续 `git pull` 不会覆盖你的本地配置，也不会误提交真实地址。
+5. 在微信公众平台为该 HTTPS 域名配置 request / uploadFile / downloadFile 合法域名。
+6. 开发阶段如需临时跳过域名校验，可在开发者工具本地设置中关闭合法域名检查；正式上传前必须恢复真实域名配置。
 
 ## 审核模式
 

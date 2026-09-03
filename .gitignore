@@ -44,7 +44,8 @@ Thumbs.db
 *.tsbuildinfo
 *.vue.js
 
-# WeChat DevTools local/private settings
+# WeChat Mini Program local/private settings
+miniprogram-project/config.js
 miniprogram-project/project.private.config.json
 
 # Runtime uploads
