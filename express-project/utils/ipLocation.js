@@ -46,22 +46,41 @@ function specialRegionName(countryCode) {
   return names[countryCode] || null;
 }
 
-function pickLocalizedName(names) {
-  if (!names || typeof names !== 'object') {
+async function queryPrimary(ip) {
+  const response = await axios.get(config.ipLocation.primaryApi, {
+    params: { ip },
+    timeout: config.ipLocation.primaryTimeout
+  });
+
+  const data = response.data;
+  if (!data || data.error) {
     return null;
   }
 
-  return names['zh-CN'] || names.zh || names.en || Object.values(names).find(Boolean) || null;
+  const countryCode = data.country && data.country.code;
+  const specialRegion = specialRegionName(countryCode);
+  if (specialRegion) {
+    return specialRegion;
+  }
+
+  const country = data.country && data.country.name;
+
+  // 国内 IP 属地保持省级显示；GeoCN 的 city/area 仅作为省份缺失时的兜底。
+  if (countryCode === 'CN') {
+    return normalizeLocation(data.subdivision || data.city || data.area || country);
+  }
+
+  return normalizeLocation(country || data.subdivision || data.city || data.area);
 }
 
-async function queryPrimary(ip) {
-  const baseUrl = config.ipLocation.primaryApi.replace(/\/+$/, '');
+async function queryBackup(ip) {
+  const baseUrl = config.ipLocation.backupApi.replace(/\/+$/, '');
   const response = await axios.get(`${baseUrl}/${encodeURIComponent(ip)}`, {
     params: {
       lang: 'zh-CN',
       fields: 'success,country,country_code,region,city,message'
     },
-    timeout: config.ipLocation.primaryTimeout
+    timeout: config.ipLocation.backupTimeout
   });
 
   const data = response.data;
@@ -81,37 +100,6 @@ async function queryPrimary(ip) {
   return normalizeLocation(data.country || data.region || data.city);
 }
 
-async function queryBackup(ip) {
-  const baseUrl = config.ipLocation.backupApi.replace(/\/+$/, '');
-  const response = await axios.get(`${baseUrl}/${encodeURIComponent(ip)}`, {
-    timeout: config.ipLocation.backupTimeout
-  });
-
-  const data = response.data;
-  const geo = data && data.geo_city;
-  if (!geo) {
-    return null;
-  }
-
-  const countryCode = geo.country && geo.country.iso_code;
-  const specialRegion = specialRegionName(countryCode);
-  if (specialRegion) {
-    return specialRegion;
-  }
-
-  const country = pickLocalizedName(geo.country && geo.country.names);
-  const city = pickLocalizedName(geo.city && geo.city.names);
-  const subdivision = Array.isArray(geo.subdivisions) && geo.subdivisions.length > 0
-    ? pickLocalizedName(geo.subdivisions[0].names)
-    : null;
-
-  if (countryCode === 'CN') {
-    return normalizeLocation(subdivision || city || country);
-  }
-
-  return normalizeLocation(country || subdivision || city);
-}
-
 /**
  * 获取IP属地信息
  * @param {string} ip - IP地址
@@ -127,10 +115,10 @@ async function getIPLocation(ip) {
     if (primaryLocation) {
       return primaryLocation;
     }
-    console.warn('主IP属地接口 ipwho.is 未返回有效属地');
+    console.warn('主IP属地接口 ip.netart.cn 未返回有效属地');
   } catch (error) {
     const status = error.response && error.response.status;
-    console.warn(`主IP属地接口 ipwho.is 调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
+    console.warn(`主IP属地接口 ip.netart.cn 调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
   }
 
   try {
@@ -138,10 +126,10 @@ async function getIPLocation(ip) {
     if (backupLocation) {
       return backupLocation;
     }
-    console.warn('备用IP属地接口 ipaddress.you 未返回有效属地');
+    console.warn('备用IP属地接口 ipwho.is 未返回有效属地');
   } catch (error) {
     const status = error.response && error.response.status;
-    console.warn(`备用IP属地接口 ipaddress.you 调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
+    console.warn(`备用IP属地接口 ipwho.is 调用失败${status ? ` (HTTP ${status})` : ''}:`, error.message);
   }
 
   console.error('IP属地查询失败: 主备接口均未返回有效结果');
