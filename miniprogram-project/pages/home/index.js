@@ -9,7 +9,10 @@ Page({
   },
   async onLoad() {
     if (wx.showShareMenu) {
-      wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] })
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
     }
     await this.syncMode()
     await Promise.all([this.loadCategories(), this.loadPosts(true)])
