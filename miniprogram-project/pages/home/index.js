@@ -1,5 +1,7 @@
 const api = require('../../services/api')
 
+const PAGE_SIZE = 12
+
 Page({
   data: {
     posts: [], leftPosts: [], rightPosts: [], categories: [], currentCategory: 'recommend',
@@ -29,7 +31,7 @@ Page({
     const nextPage = reset ? 1 : this.data.page + 1
     this.setData({ loading: true })
     try {
-      const params = { page: nextPage, limit: 20 }
+      const params = { page: nextPage, limit: PAGE_SIZE }
       if (this.data.currentCategory !== 'recommend') params.category = this.data.currentCategory
       const result = await api.getPosts(params)
       const incoming = (result && result.posts) || []

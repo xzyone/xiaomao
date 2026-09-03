@@ -8,8 +8,10 @@ WORKDIR /app
 COPY --chown=node:node . .
 
 RUN npm ci --omit=dev \
+    && npm install --omit=dev --no-save --package-lock=false --include=optional sharp@0.34.4 \
     && test -f /app/node_modules/express/package.json \
     && node -e "console.log('Express:', require.resolve('express'))" \
+    && node -e "const sharp=require('sharp'); console.log('Sharp:', sharp.versions.sharp, 'libvips:', sharp.versions.vips)" \
     && npm cache clean --force
 
 ENV NODE_ENV=production
