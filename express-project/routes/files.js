@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const { validateImageFile, validateVideoFile } = require('../utils/fileHelpers');
 const { HTTP_STATUS, RESPONSE_CODES } = require('../constants');
+const { ensureLocalThumbnail } = require('../utils/imageThumbnail');
 
 const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
 
@@ -58,6 +59,46 @@ function parseByteRange(rangeHeader, fileSize) {
 
   return { start, end: Math.min(end, fileSize - 1) };
 }
+
+router.get('/thumbnails/:filename', async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const original = await validateImageFile(filename);
+
+    if (!original.valid) {
+      return res.status(original.statusCode).json({
+        code: original.statusCode,
+        message: '文件访问失败'
+      });
+    }
+
+    try {
+      const thumbnailPath = await ensureLocalThumbnail(filename, original.filePath);
+      if (thumbnailPath && fs.existsSync(thumbnailPath)) {
+        const stat = await fs.promises.stat(thumbnailPath);
+        res.setHeader('Content-Type', 'image/webp');
+        res.setHeader('Content-Length', stat.size);
+        res.setHeader('Cache-Control', IMMUTABLE_CACHE);
+        pipeFile(res, thumbnailPath);
+        return;
+      }
+    } catch (error) {
+      // 缩略图生成失败时退回原图，避免首页出现破图。
+      console.warn(`缩略图生成失败，回退原图 ${filename}:`, error.message);
+    }
+
+    res.setHeader('Content-Type', original.contentType);
+    res.setHeader('Content-Length', original.fileSize);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    pipeFile(res, original.filePath);
+  } catch (error) {
+    console.error('缩略图访问错误:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      code: RESPONSE_CODES.ERROR,
+      message: '服务器错误'
+    });
+  }
+});
 
 router.get('/images/:filename', async (req, res) => {
   try {
