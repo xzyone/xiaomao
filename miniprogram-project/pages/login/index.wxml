@@ -1,5 +1,7 @@
 <view class="login-page">
   <view class="login-brand">
+    <image wx:if="{{logoUrl && !logoLoadFailed}}" class="brand-logo" src="{{logoUrl}}" mode="aspectFill" binderror="onLogoError" />
+    <view wx:else class="brand-logo brand-logo-fallback">毛</view>
     <text class="logo-text">小毛毛</text>
     <text class="subtitle">登录后和家人一起记录毛毛</text>
   </view>
@@ -9,6 +11,6 @@
     <text class="label second">密码</text>
     <input class="input" value="{{password}}" password placeholder="请输入密码" bindinput="onPasswordInput" />
     <button class="login-button" loading="{{submitting}}" bindtap="submit">登录</button>
-    <text class="hint">首版小程序复用现有账号体系，注册与找回密码暂时仍在网页端完成。</text>
+    <text class="hint">注册和找回密码请前往网页端操作。</text>
   </view>
 </view>
