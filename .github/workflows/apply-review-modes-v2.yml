@@ -41,20 +41,7 @@ jobs:
           npm run build
 
       - name: Validate review mode wiring
-        run: |
-          grep -q "post_review_mode" express-project/utils/reviewPolicy.js
-          grep -q "REVIEW_MODES.VERIFIED" express-project/utils/reviewPolicy.js
-          grep -q "admin/system-settings" express-project/app.js
-          grep -q "system-settings" vue3-project/src/router/index.js
-          grep -q "系统设置" vue3-project/src/views/admin/AdminLayout.vue
-          grep -q "全站免审" vue3-project/src/views/admin/SystemSettings.vue
-          grep -q "认证免审" vue3-project/src/views/admin/SystemSettings.vue
-          grep -q "全站审核" vue3-project/src/views/admin/SystemSettings.vue
-          grep -q "status: 0 // 发布意图" vue3-project/src/views/publish/index.vue
-          if grep -q "status: 2 // 发布状态：2=待审核" vue3-project/src/views/publish/index.vue; then
-            echo "Legacy hard-coded review status still exists" >&2
-            exit 1
-          fi
+        run: python .github/scripts/verify_review_modes.py
 
       - name: Commit implementation and remove temporary files
         run: |
@@ -62,6 +49,7 @@ jobs:
           rm -f .github/workflows/apply-review-modes-v2.yml
           rm -f .github/scripts/apply_review_modes.py
           rm -f .github/scripts/fix_review_modes_patcher.py
+          rm -f .github/scripts/verify_review_modes.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
