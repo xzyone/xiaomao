@@ -1,0 +1,19 @@
+name: Media Pipeline Review
+
+on:
+  push:
+    branches:
+      - fix/media-pipeline-review
+    paths:
+      - express-project/**
+      - .github/workflows/media-pipeline-review.yml
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build --progress=plain -t xiaomao-backend-review ./express-project
+      - name: Verify Node and Sharp
+        run: docker run --rm --entrypoint node xiaomao-backend-review -e "const sharp=require('sharp'); console.log(process.version, sharp.versions.sharp, sharp.versions.vips)"
