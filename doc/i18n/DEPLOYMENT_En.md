@@ -113,7 +113,7 @@ SMTP_PASSWORD=your_email_password
 # Sender email
 EMAIL_FROM=your_email@example.com
 # Sender name
-EMAIL_FROM_NAME=XiaoMao Campus Community
+EMAIL_FROM_NAME=XiaoMao Life Community
 
 # IP Location Query Configuration
 # Primary API URL
