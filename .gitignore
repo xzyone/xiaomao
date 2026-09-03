@@ -44,5 +44,6 @@ Thumbs.db
 *.tsbuildinfo
 *.vue.js
 
-# uploads
+# Runtime uploads
+/uploads/
 express-project/uploads/
