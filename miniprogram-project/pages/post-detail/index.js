@@ -139,7 +139,7 @@ Page({
   },
   onShareAppMessage() {
     const post = this.data.post || {}
-    const imageUrl = this.data.displayImages[0] || post.poster_url || ''
+    const imageUrl = (Array.isArray(post.images) && post.images[0]) || post.poster_url || ''
     const shareData = {
       title: post.title || '小毛毛的快乐狗生',
       path: `/pages/post-detail/index?id=${this.data.id}`
@@ -149,7 +149,7 @@ Page({
   },
   onShareTimeline() {
     const post = this.data.post || {}
-    const imageUrl = this.data.displayImages[0] || post.poster_url || ''
+    const imageUrl = (Array.isArray(post.images) && post.images[0]) || post.poster_url || ''
     const shareData = {
       title: post.title || '小毛毛的快乐狗生',
       query: `id=${encodeURIComponent(this.data.id || '')}`
