@@ -24,7 +24,7 @@
     <text class="date">{{displayDate}} · 浏览 {{post.view_count || 0}}{{post.location ? ' · ' + post.location : ''}}</text>
   </view>
 
-  <view wx:if="{{!readonlyMode}}" class="comments-section">
+  <view wx:if="{{!auditModeEnabled}}" class="comments-section">
     <text class="section-title">评论 {{post.comment_count || 0}}</text>
     <view wx:for="{{comments}}" wx:key="id" class="comment-item">
       <image class="comment-avatar" src="{{item.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load data-index="{{index}}" binderror="onCommentAvatarError" />
@@ -36,7 +36,7 @@
     </view>
     <view wx:if="{{!comments.length}}" class="no-comments">还没有评论</view>
   </view>
-  <view wx:if="{{!readonlyMode}}" class="comment-bar safe-bottom">
+  <view wx:if="{{!auditModeEnabled}}" class="comment-bar safe-bottom">
     <input class="comment-input" value="{{commentText}}" placeholder="{{loggedIn ? '说点什么...' : '登录后参与评论'}}" bindinput="onCommentInput" bindtap="handleCommentInputTap" />
     <button class="send-button" bindtap="submitComment">发送</button>
   </view>
