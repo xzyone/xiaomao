@@ -1,10 +1,23 @@
 const api = require('./services/api')
 
+const READONLY_FEATURES = Object.freeze({
+  browse: true,
+  share: true,
+  login: false,
+  profile: false,
+  publish: false,
+  comment: false,
+  like: false,
+  collect: false
+})
+
 App({
   globalData: {
     // Fail closed until the server explicitly confirms interactive mode.
+    mode: 'readonly',
     readonlyMode: true,
     interactiveEnabled: false,
+    features: { ...READONLY_FEATURES },
     configLoaded: false,
     user: null,
     sessionValid: false,
@@ -64,10 +77,31 @@ App({
 
   applyMiniappConfig(result) {
     const readonlyMode = Boolean(result && result.readonly_mode)
+    const interactiveEnabled = !readonlyMode
+    this.globalData.mode = readonlyMode ? 'readonly' : 'interactive'
     this.globalData.readonlyMode = readonlyMode
-    this.globalData.interactiveEnabled = !readonlyMode
+    this.globalData.interactiveEnabled = interactiveEnabled
+    this.globalData.features = result && result.features
+      ? { ...READONLY_FEATURES, ...result.features }
+      : {
+          browse: true,
+          share: true,
+          login: interactiveEnabled,
+          profile: interactiveEnabled,
+          publish: interactiveEnabled,
+          comment: interactiveEnabled,
+          like: interactiveEnabled,
+          collect: interactiveEnabled
+        }
     this.globalData.configLoaded = true
     return result
+  },
+
+  setReadonlyFallback() {
+    this.globalData.mode = 'readonly'
+    this.globalData.readonlyMode = true
+    this.globalData.interactiveEnabled = false
+    this.globalData.features = { ...READONLY_FEATURES }
   },
 
   async refreshMiniappConfig() {
@@ -77,8 +111,7 @@ App({
     } catch (error) {
       // Do not expose interactive features when config cannot be verified.
       console.warn('读取小程序模式失败，保持只读:', error)
-      this.globalData.readonlyMode = true
-      this.globalData.interactiveEnabled = false
+      this.setReadonlyFallback()
       return null
     }
   },
@@ -89,6 +122,15 @@ App({
 
     if (toast) wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
     setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
+    return false
+  },
+
+  async ensureFeature(feature, { toast = true, redirect = false } = {}) {
+    await this.refreshMiniappConfig()
+    if (this.globalData.features && this.globalData.features[feature]) return true
+
+    if (toast) wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
+    if (redirect) setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
     return false
   }
 })
