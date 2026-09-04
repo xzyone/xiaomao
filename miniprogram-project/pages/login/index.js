@@ -11,13 +11,16 @@ Page({
     password: '',
     submitting: false,
     logoUrl,
-    logoLoadFailed: false
+    logoLoadFailed: false,
+    pageAllowed: false
   },
   async onLoad() {
-    await getApp().ensureInteractivePage({ toast: false })
+    const allowed = await getApp().ensureInteractivePage({ toast: false })
+    if (allowed) this.setData({ pageAllowed: true })
   },
   async onShow() {
-    await getApp().ensureInteractivePage({ toast: false })
+    const allowed = await getApp().ensureInteractivePage({ toast: false })
+    if (allowed && !this.data.pageAllowed) this.setData({ pageAllowed: true })
   },
   onUserIdInput(event) { this.setData({ userId: event.detail.value }) },
   onPasswordInput(event) { this.setData({ password: event.detail.value }) },
