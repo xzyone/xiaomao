@@ -15,5 +15,5 @@
     <text class="guest-title">登录小毛毛</text>
     <button class="primary-button" bindtap="goLogin">去登录</button>
   </view>
-  <bottom-nav current="profile" readonly-mode="{{readonlyMode}}" />
+  <bottom-nav current="profile" audit-mode-enabled="{{auditModeEnabled}}" />
 </view>
