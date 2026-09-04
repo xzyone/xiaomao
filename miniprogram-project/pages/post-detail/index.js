@@ -19,7 +19,7 @@ Page({
     currentMediaHeight: DEFAULT_MEDIA_HEIGHT_RPX,
     currentImageIndex: 0,
     currentImageCanShowOriginal: false,
-    readonlyMode: true,
+    auditModeEnabled: true,
     loggedIn: false,
     loading: true
   },
@@ -31,25 +31,26 @@ Page({
         menus: ['shareAppMessage', 'shareTimeline']
       })
     }
-    await this.syncMode()
+    await this.syncAuditMode()
     await this.loadPost()
-    if (!this.data.readonlyMode) await this.loadComments()
+    if (!this.data.auditModeEnabled) await this.loadComments()
   },
   async onShow() {
-    const wasReadonly = this.data.readonlyMode
-    await this.syncMode()
-    if (this.data.readonlyMode) {
+    const wasAuditModeEnabled = this.data.auditModeEnabled
+    await this.syncAuditMode()
+    if (this.data.auditModeEnabled) {
       if (this.data.comments.length || this.data.commentText) this.setData({ comments: [], commentText: '' })
       return
     }
-    if (wasReadonly && this.data.post && this.data.comments.length === 0) await this.loadComments()
+    if (wasAuditModeEnabled && this.data.post && this.data.comments.length === 0) await this.loadComments()
   },
-  async syncMode() {
+  async syncAuditMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
+    const auditModeEnabled = app.isAuditModeEnabled()
     this.setData({
-      readonlyMode: app.globalData.readonlyMode,
-      loggedIn: app.globalData.interactiveEnabled && Boolean(wx.getStorageSync('token'))
+      auditModeEnabled,
+      loggedIn: !auditModeEnabled && Boolean(wx.getStorageSync('token'))
     })
   },
   async loadPost() {
@@ -77,12 +78,14 @@ Page({
     }
   },
   async loadComments() {
-    if (this.data.readonlyMode) return
+    if (this.data.auditModeEnabled) return
     try {
       const result = await api.getComments(this.data.id)
       this.setData({ comments: (result && result.comments) || [] })
     } catch (error) {
-      if (error.error !== 'MINIAPP_READONLY') console.warn('加载评论失败:', error)
+      if (error.error !== 'MINIAPP_AUDIT_MODE' && error.error !== 'MINIAPP_READONLY') {
+        console.warn('加载评论失败:', error)
+      }
     }
   },
   onPostAvatarError() {
@@ -172,11 +175,11 @@ Page({
   onCommentInput(event) { this.setData({ commentText: event.detail.value }) },
   handleCommentInputTap() { if (!this.data.loggedIn) this.goLogin() },
   async goLogin() {
-    if (!(await getApp().ensureInteractivePage())) return
+    if (!(await getApp().ensureNormalMode())) return
     wx.navigateTo({ url: '/pages/login/index' })
   },
   async submitComment() {
-    if (!(await getApp().ensureInteractivePage())) return
+    if (!(await getApp().ensureNormalMode())) return
     const content = this.data.commentText.trim()
     if (!content) return
     if (!this.data.loggedIn) return this.goLogin()
