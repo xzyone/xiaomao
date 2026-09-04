@@ -10,7 +10,7 @@ async function getMiniappConfig() {
   return unwrap(await request({ url: '/miniapp/config' }))
 }
 
-async function getPosts(params = {}) {
+async function posts(params = {}) {
   const query = Object.entries({ page: 1, limit: 20, status: 0, ...params })
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
@@ -20,16 +20,16 @@ async function getPosts(params = {}) {
   return { ...result, posts: result.posts.map(post => normalizePost(post, apiBaseUrl)) }
 }
 
-async function getPostDetail(id, skipViewCount = false) {
+async function detail(id, skipViewCount = false) {
   const post = unwrap(await request({ url: `/posts/${id}${skipViewCount ? '?skipViewCount=true' : ''}` }))
   return normalizePost(post, apiBaseUrl)
 }
 
-async function getCategories() {
+async function categories() {
   return unwrap(await request({ url: '/categories' }))
 }
 
-async function getComments(postId, page = 1) {
+async function msgs(postId, page = 1) {
   const result = unwrap(await request({ url: `/comments?post_id=${postId}&page=${page}&limit=20` }))
   if (!result || !Array.isArray(result.comments)) return result
   return { ...result, comments: result.comments.map(comment => normalizeComment(comment, apiBaseUrl)) }
@@ -49,36 +49,36 @@ async function getCurrentUser() {
   return normalizeUser(unwrap(await request({ url: '/auth/me' })), apiBaseUrl)
 }
 
-async function createComment(postId, content) {
+async function msg(postId, content) {
   return normalizeComment(
     unwrap(await request({ url: '/comments', method: 'POST', data: { post_id: postId, content } })),
     apiBaseUrl
   )
 }
 
-async function createPost(payload) {
+async function post(payload) {
   return unwrap(await request({ url: '/posts', method: 'POST', data: payload }))
 }
 
-async function uploadImage(filePath) {
+async function image(filePath) {
   return unwrap(await uploadFile({ url: '/upload/single', filePath }))
 }
 
-async function uploadVideo(filePath) {
+async function video(filePath) {
   return unwrap(await uploadFile({ url: '/upload/video', filePath, name: 'file' }))
 }
 
 module.exports = {
   getMiniappConfig,
-  getPosts,
-  getPostDetail,
-  getCategories,
-  getComments,
+  posts,
+  detail,
+  categories,
+  msgs,
   login,
   logout,
   getCurrentUser,
-  createComment,
-  createPost,
-  uploadImage,
-  uploadVideo
+  msg,
+  post,
+  image,
+  video
 }
