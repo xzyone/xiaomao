@@ -1,4 +1,4 @@
-<view class="page-shell profile-page">
+<view wx:if="{{pageAllowed}}" class="page-shell profile-page">
   <view wx:if="{{user}}" class="profile-card">
     <image class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarError" />
     <text class="nickname">{{user.nickname}}</text>
