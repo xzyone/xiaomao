@@ -17,7 +17,7 @@ Page({
 
   async onLoad() {
     const app = getApp()
-    if (!(await app.ensureInteractivePage({ toast: false }))) return
+    if (!(await app.ensureNormalMode({ toast: false }))) return
     this.setData({ pageAllowed: true })
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: '请先登录', icon: 'none' })
@@ -33,7 +33,7 @@ Page({
 
   async onShow() {
     const app = getApp()
-    if (!(await app.ensureInteractivePage({ toast: false }))) return
+    if (!(await app.ensureNormalMode({ toast: false }))) return
     if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
     if (!wx.getStorageSync('token')) return
     const state = await app.validateSession(false)
@@ -42,7 +42,7 @@ Page({
 
   async ensureSession() {
     const app = getApp()
-    if (!(await app.ensureInteractivePage())) return false
+    if (!(await app.ensureNormalMode())) return false
 
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: '请先登录', icon: 'none' })
@@ -153,7 +153,7 @@ Page({
     wx.showLoading({ title: '正在发布', mask: true })
     try {
       const app = getApp()
-      if (!(await app.ensureInteractivePage())) throw new Error('当前仅支持浏览')
+      if (!(await app.ensureNormalMode())) throw new Error('当前仅支持浏览')
 
       const category = this.data.categoryIndex >= 0 ? this.data.categories[this.data.categoryIndex] : null
       const tags = this.data.tagsText
