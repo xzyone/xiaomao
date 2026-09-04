@@ -30,10 +30,13 @@ function handleUnauthorized() {
 function handleReadonly() {
   try {
     const app = getApp()
-    if (app && app.globalData) {
-      app.globalData.readonlyMode = true
-      app.globalData.interactiveEnabled = false
-      app.globalData.configLoaded = true
+    if (app) {
+      if (typeof app.setReadonlyFallback === 'function') app.setReadonlyFallback()
+      else if (app.globalData) {
+        app.globalData.readonlyMode = true
+        app.globalData.interactiveEnabled = false
+      }
+      if (app.globalData) app.globalData.configLoaded = true
     }
   } catch (error) {}
 
