@@ -9,7 +9,7 @@ Component({
     },
     goPublish() {
       if (this.data.readonlyMode) return
-      wx.navigateTo({ url: '/pages/publish/index' })
+      wx.navigateTo({ url: '/pages/editor/index' })
     },
     goProfile() {
       if (this.data.readonlyMode) return

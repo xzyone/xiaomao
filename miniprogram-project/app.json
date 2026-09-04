@@ -3,7 +3,7 @@
     "pages/home/index",
     "pages/post-detail/index",
     "pages/login/index",
-    "pages/publish/index",
+    "pages/editor/index",
     "pages/profile/index"
   ],
   "window": {
