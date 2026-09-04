@@ -24,7 +24,7 @@ Page({
       return wx.redirectTo({ url: '/pages/login/index' })
     }
     try {
-      const categories = await api.getCategories()
+      const categories = await api.categories()
       this.setData({ categories: Array.isArray(categories) ? categories : [] })
     } catch (error) {
       console.warn('加载分类失败:', error)
@@ -121,7 +121,7 @@ Page({
   async uploadImages() {
     const urls = []
     for (const filePath of this.data.images) {
-      const result = await api.uploadImage(filePath)
+      const result = await api.image(filePath)
       if (result && result.url) urls.push(result.url)
     }
     return urls
@@ -131,10 +131,10 @@ Page({
     if (!this.data.video) return null
     let coverUrl = null
     if (this.data.video.thumbPath) {
-      const cover = await api.uploadImage(this.data.video.thumbPath)
+      const cover = await api.image(this.data.video.thumbPath)
       coverUrl = cover && cover.url ? cover.url : null
     }
-    const uploaded = await api.uploadVideo(this.data.video.path)
+    const uploaded = await api.video(this.data.video.path)
     if (!uploaded || !uploaded.url) throw new Error('视频上传失败')
     return { url: uploaded.url, coverUrl: coverUrl || uploaded.coverUrl || null }
   },
@@ -172,7 +172,7 @@ Page({
       if (this.data.type === 1) payload.images = await this.uploadImages()
       if (this.data.type === 2) payload.video = await this.uploadVideo()
 
-      const result = await api.createPost(payload)
+      const result = await api.post(payload)
       wx.hideLoading()
       wx.showToast({ title: result && result.review_required ? '已提交审核' : '发布成功', icon: 'success' })
       setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 500)
