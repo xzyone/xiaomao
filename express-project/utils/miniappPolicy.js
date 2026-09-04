@@ -66,17 +66,17 @@ async function miniappReadonlyGuard(req, res, next) {
       return next();
     }
 
-    const readonlyMode = await getMiniappReadonlyMode();
-    req.miniappReadonly = readonlyMode;
+    const auditModeEnabled = await getMiniappReadonlyMode();
+    req.miniappAuditMode = auditModeEnabled;
 
-    if (!readonlyMode) {
+    if (!auditModeEnabled) {
       return next();
     }
 
     const requestPath = (req.path || '/').replace(/\/+$/, '') || '/';
 
-    // The public client config must remain readable so the mini program can
-    // switch its UI immediately when the setting changes.
+    // Client configuration stays available so a mode change can take effect
+    // as soon as the mini program refreshes its settings.
     if (req.method === 'GET' && requestPath === '/miniapp/config') {
       return next();
     }
@@ -84,18 +84,16 @@ async function miniappReadonlyGuard(req, res, next) {
     if (req.method !== 'GET') {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         code: RESPONSE_CODES.FORBIDDEN,
-        message: '小程序当前处于只读模式',
-        error: 'MINIAPP_READONLY'
+        message: '小程序当前处于审核模式',
+        error: 'MINIAPP_AUDIT_MODE'
       });
     }
 
-    // Published post list only. Ignore a stale or manually supplied status.
     if (requestPath === '/posts') {
       req.query.status = '0';
       return next();
     }
 
-    // Post detail is allowed only when the target is already published.
     const postDetailMatch = requestPath.match(/^\/posts\/(\d+)$/);
     if (postDetailMatch) {
       const [rows] = await pool.execute(
@@ -113,19 +111,18 @@ async function miniappReadonlyGuard(req, res, next) {
       return next();
     }
 
-    // Read-only browsing helpers. Comments/users/likes/collections/auth/upload
-    // are deliberately excluded while review mode is enabled.
+    // Only data required by the audit presentation remains available here.
     if (requestPath === '/categories' || requestPath === '/tags' || requestPath === '/search') {
       return next();
     }
 
     return res.status(HTTP_STATUS.FORBIDDEN).json({
       code: RESPONSE_CODES.FORBIDDEN,
-      message: '小程序当前处于只读模式',
-      error: 'MINIAPP_READONLY'
+      message: '小程序当前处于审核模式',
+      error: 'MINIAPP_AUDIT_MODE'
     });
   } catch (error) {
-    console.error('检查小程序只读模式失败:', error);
+    console.error('检查小程序审核模式失败:', error);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       code: RESPONSE_CODES.ERROR,
       message: '读取小程序配置失败'

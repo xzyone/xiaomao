@@ -5,26 +5,15 @@ const { getMiniappReadonlyMode } = require('../utils/miniappPolicy');
 
 router.get('/config', async (req, res) => {
   try {
-    const readonlyMode = await getMiniappReadonlyMode();
-    const interactiveEnabled = !readonlyMode;
+    const auditModeEnabled = await getMiniappReadonlyMode();
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.json({
       code: RESPONSE_CODES.SUCCESS,
       message: 'success',
       data: {
-        mode: readonlyMode ? 'readonly' : 'interactive',
-        readonly_mode: readonlyMode,
-        interactive_enabled: interactiveEnabled,
-        features: {
-          browse: true,
-          share: true,
-          login: interactiveEnabled,
-          profile: interactiveEnabled,
-          publish: interactiveEnabled,
-          comment: interactiveEnabled,
-          like: interactiveEnabled,
-          collect: interactiveEnabled
+        auditConfig: {
+          auditModeEnabled
         }
       }
     });

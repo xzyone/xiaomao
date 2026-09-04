@@ -5,7 +5,7 @@ const PAGE_SIZE = 12
 Page({
   data: {
     posts: [], leftPosts: [], rightPosts: [], categories: [], currentCategory: 'recommend',
-    page: 1, hasMore: true, loading: false, readonlyMode: true
+    page: 1, hasMore: true, loading: false, auditModeEnabled: true
   },
   async onLoad() {
     if (wx.showShareMenu) {
@@ -14,18 +14,18 @@ Page({
         menus: ['shareAppMessage', 'shareTimeline']
       })
     }
-    await this.syncMode()
+    await this.syncAuditMode()
     await Promise.all([this.loadCategories(), this.loadPosts(true)])
   },
-  async onShow() { await this.syncMode() },
+  async onShow() { await this.syncAuditMode() },
   async onPullDownRefresh() {
-    await this.syncMode(); await this.loadPosts(true); wx.stopPullDownRefresh()
+    await this.syncAuditMode(); await this.loadPosts(true); wx.stopPullDownRefresh()
   },
   async onReachBottom() { if (this.data.hasMore && !this.data.loading) await this.loadPosts(false) },
-  async syncMode() {
+  async syncAuditMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
-    this.setData({ readonlyMode: app.globalData.readonlyMode })
+    this.setData({ auditModeEnabled: app.isAuditModeEnabled() })
   },
   async loadCategories() {
     try {

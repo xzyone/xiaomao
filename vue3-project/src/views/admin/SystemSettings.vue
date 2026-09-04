@@ -30,32 +30,32 @@
       <div class="settings-card-header miniapp-header">
         <div>
           <h2>小程序审核模式</h2>
-          <p>用于小程序提交审核或需要临时关闭互动能力的场景。</p>
+          <p>用于小程序提交审核时切换展示状态。</p>
         </div>
-        <button type="button" class="toggle-switch" :class="{ active: miniappReadonlyMode }"
-          :disabled="loading || savingMiniapp" :aria-pressed="miniappReadonlyMode"
-          @click="toggleMiniappReadonlyMode">
+        <button type="button" class="toggle-switch" :class="{ active: miniappAuditMode }"
+          :disabled="loading || savingMiniapp" :aria-pressed="miniappAuditMode"
+          @click="toggleMiniappAuditMode">
           <span class="toggle-knob"></span>
         </button>
       </div>
 
-      <div class="miniapp-mode-panel" :class="{ active: miniappReadonlyMode }">
+      <div class="miniapp-mode-panel" :class="{ active: miniappAuditMode }">
         <div>
-          <strong>{{ miniappReadonlyMode ? '只读浏览' : '完整功能' }}</strong>
-          <p v-if="miniappReadonlyMode">
-            小程序仅展示已发布笔记及浏览所需内容，不显示登录、发帖、评论、点赞、收藏等互动入口；后端同时拒绝对应的小程序请求。
+          <strong>{{ miniappAuditMode ? '审核模式' : '日常模式' }}</strong>
+          <p v-if="miniappAuditMode">
+            小程序按审核配置展示页面及数据，首页和笔记详情保持可浏览。
           </p>
           <p v-else>
-            小程序可正常登录、上传图片或视频、发帖及参与评论等互动。
+            小程序按日常配置展示页面及数据。
           </p>
         </div>
-        <span class="mode-state" :class="{ enabled: miniappReadonlyMode }">
-          {{ miniappReadonlyMode ? '已开启' : '未开启' }}
+        <span class="mode-state" :class="{ enabled: miniappAuditMode }">
+          {{ miniappAuditMode ? '已开启' : '未开启' }}
         </span>
       </div>
 
       <div class="settings-note">
-        该设置只影响携带小程序客户端标识的请求，不影响现有网页端。切换后小程序会在下次进入页面时重新读取状态。
+        该设置只影响小程序客户端，不影响现有网页端。切换后小程序会在下次进入页面时重新读取状态。
       </div>
     </section>
 
@@ -87,7 +87,7 @@ const reviewModes = [
 ]
 
 const currentMode = ref('all')
-const miniappReadonlyMode = ref(false)
+const miniappAuditMode = ref(false)
 const loading = ref(true)
 const saving = ref(false)
 const savingMiniapp = ref(false)
@@ -117,7 +117,7 @@ const loadSettings = async () => {
     const result = await response.json()
     if (result.code === 200 && result.data?.post_review_mode) {
       currentMode.value = result.data.post_review_mode
-      miniappReadonlyMode.value = Boolean(result.data.miniapp_readonly_mode)
+      miniappAuditMode.value = Boolean(result.data.miniapp_readonly_mode)
     } else {
       showMessage(result.message || '读取系统设置失败', 'error')
     }
@@ -142,7 +142,7 @@ const changeReviewMode = async (mode) => {
     const result = await response.json()
     if (result.code === 200) {
       currentMode.value = result.data?.post_review_mode || mode
-      miniappReadonlyMode.value = Boolean(result.data?.miniapp_readonly_mode)
+      miniappAuditMode.value = Boolean(result.data?.miniapp_readonly_mode)
       showMessage(result.message || '设置已保存')
     } else {
       showMessage(result.message || '保存系统设置失败', 'error')
@@ -155,10 +155,10 @@ const changeReviewMode = async (mode) => {
   }
 }
 
-const toggleMiniappReadonlyMode = async () => {
+const toggleMiniappAuditMode = async () => {
   if (savingMiniapp.value || loading.value) return
 
-  const nextMode = !miniappReadonlyMode.value
+  const nextMode = !miniappAuditMode.value
   savingMiniapp.value = true
   try {
     const response = await fetch(`${apiConfig.baseURL}/admin/system-settings`, {
@@ -168,7 +168,7 @@ const toggleMiniappReadonlyMode = async () => {
     })
     const result = await response.json()
     if (result.code === 200) {
-      miniappReadonlyMode.value = Boolean(result.data?.miniapp_readonly_mode)
+      miniappAuditMode.value = Boolean(result.data?.miniapp_readonly_mode)
       if (result.data?.post_review_mode) currentMode.value = result.data.post_review_mode
       showMessage(result.message || '设置已保存')
     } else {

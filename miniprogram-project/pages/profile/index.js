@@ -6,24 +6,24 @@ Page({
   data: {
     user: null,
     avatarUrl: DEFAULT_AVATAR,
-    readonlyMode: true,
+    auditModeEnabled: true,
     loading: true,
     pageAllowed: false
   },
   async onShow() {
     const app = getApp()
-    if (!(await app.ensureInteractivePage({ toast: false }))) return
-    if (!this.data.pageAllowed) this.setData({ pageAllowed: true, readonlyMode: false })
+    if (!(await app.ensureNormalMode({ toast: false }))) return
+    if (!this.data.pageAllowed) this.setData({ pageAllowed: true, auditModeEnabled: false })
 
     const token = wx.getStorageSync('token')
     if (!token) {
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, readonlyMode: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loading: false })
       return
     }
 
     const sessionState = await app.validateSession(true)
     if (sessionState === false) {
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, readonlyMode: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loading: false })
       return
     }
 
@@ -31,7 +31,7 @@ Page({
     this.setData({
       user,
       avatarUrl: user ? (user.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR,
-      readonlyMode: false,
+      auditModeEnabled: false,
       loading: false
     })
   },
