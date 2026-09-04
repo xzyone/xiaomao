@@ -67,10 +67,10 @@ App({
   },
 
   applyMiniappConfig(result) {
-    const auditModeEnabled = Boolean(
+    const auditModeEnabled = !(
       result &&
       result.auditConfig &&
-      result.auditConfig.auditModeEnabled === true
+      result.auditConfig.auditModeEnabled === false
     )
 
     this.globalData.auditConfig = { auditModeEnabled }
