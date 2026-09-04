@@ -11,12 +11,14 @@ Page({
     video: null,
     tagsText: '',
     submitting: false,
-    uploading: false
+    uploading: false,
+    pageAllowed: false
   },
 
   async onLoad() {
     const app = getApp()
     if (!(await app.ensureInteractivePage({ toast: false }))) return
+    this.setData({ pageAllowed: true })
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: '请先登录', icon: 'none' })
       return wx.redirectTo({ url: '/pages/login/index' })
@@ -32,6 +34,7 @@ Page({
   async onShow() {
     const app = getApp()
     if (!(await app.ensureInteractivePage({ toast: false }))) return
+    if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
     if (!wx.getStorageSync('token')) return
     const state = await app.validateSession(false)
     if (state === false) wx.redirectTo({ url: '/pages/login/index' })
