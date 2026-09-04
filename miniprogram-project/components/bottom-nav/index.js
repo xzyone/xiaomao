@@ -1,7 +1,7 @@
 Component({
   properties: {
     current: { type: String, value: 'home' },
-    readonlyMode: { type: Boolean, value: false }
+    readonlyMode: { type: Boolean, value: true }
   },
   methods: {
     goHome() {
