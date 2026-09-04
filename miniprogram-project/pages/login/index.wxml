@@ -1,4 +1,4 @@
-<view class="login-page">
+<view wx:if="{{pageAllowed}}" class="login-page">
   <view class="login-brand">
     <image wx:if="{{logoUrl && !logoLoadFailed}}" class="brand-logo" src="{{logoUrl}}" mode="aspectFill" binderror="onLogoError" />
     <view wx:else class="brand-logo brand-logo-fallback">毛</view>
