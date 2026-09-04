@@ -29,7 +29,7 @@ Page({
   },
   async loadCategories() {
     try {
-      const categories = await api.getCategories()
+      const categories = await api.categories()
       this.setData({ categories: Array.isArray(categories) ? categories : [] })
     } catch (error) { console.warn('加载分类失败:', error) }
   },
@@ -40,7 +40,7 @@ Page({
     try {
       const params = { page: nextPage, limit: PAGE_SIZE }
       if (this.data.currentCategory !== 'recommend') params.category = this.data.currentCategory
-      const result = await api.getPosts(params)
+      const result = await api.posts(params)
       const incoming = (result && result.posts) || []
       const posts = reset ? incoming : this.data.posts.concat(incoming)
       this.setData({ posts, page: nextPage, hasMore: Boolean(result && result.pagination && nextPage < result.pagination.pages) })
