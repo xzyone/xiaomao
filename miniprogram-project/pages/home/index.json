@@ -6,5 +6,8 @@
   "usingComponents": {
     "post-card": "/components/post-card/index",
     "bottom-nav": "/components/bottom-nav/index"
+  },
+  "componentPlaceholder": {
+    "post-card": "view"
   }
 }
