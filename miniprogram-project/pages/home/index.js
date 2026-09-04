@@ -5,7 +5,7 @@ const PAGE_SIZE = 12
 Page({
   data: {
     posts: [], leftPosts: [], rightPosts: [], categories: [], currentCategory: 'recommend',
-    page: 1, hasMore: true, loading: false, readonlyMode: false
+    page: 1, hasMore: true, loading: false, readonlyMode: true
   },
   async onLoad() {
     if (wx.showShareMenu) {
@@ -23,7 +23,8 @@ Page({
   },
   async onReachBottom() { if (this.data.hasMore && !this.data.loading) await this.loadPosts(false) },
   async syncMode() {
-    const app = getApp(); await app.refreshMiniappConfig()
+    const app = getApp()
+    await app.refreshMiniappConfig()
     this.setData({ readonlyMode: app.globalData.readonlyMode })
   },
   async loadCategories() {

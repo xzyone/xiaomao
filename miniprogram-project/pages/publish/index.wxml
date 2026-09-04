@@ -1,4 +1,4 @@
-<view class="publish-page">
+<view wx:if="{{pageAllowed}}" class="publish-page">
   <view class="type-tabs">
     <view class="type-tab {{type === 1 ? 'active' : ''}}" data-type="1" bindtap="setType">图文</view>
     <view class="type-tab {{type === 2 ? 'active' : ''}}" data-type="2" bindtap="setType">视频</view>

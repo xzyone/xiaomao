@@ -11,18 +11,23 @@ Page({
     password: '',
     submitting: false,
     logoUrl,
-    logoLoadFailed: false
+    logoLoadFailed: false,
+    pageAllowed: false
   },
   async onLoad() {
-    const app = getApp()
-    await app.refreshMiniappConfig()
-    if (app.globalData.readonlyMode) wx.navigateBack({ delta: 1 })
+    const allowed = await getApp().ensureInteractivePage({ toast: false })
+    if (allowed) this.setData({ pageAllowed: true })
+  },
+  async onShow() {
+    const allowed = await getApp().ensureInteractivePage({ toast: false })
+    if (allowed && !this.data.pageAllowed) this.setData({ pageAllowed: true })
   },
   onUserIdInput(event) { this.setData({ userId: event.detail.value }) },
   onPasswordInput(event) { this.setData({ password: event.detail.value }) },
   onLogoError() { this.setData({ logoLoadFailed: true }) },
   async submit() {
     if (this.data.submitting) return
+    if (!(await getApp().ensureInteractivePage())) return
     if (!this.data.userId.trim() || !this.data.password) {
       return wx.showToast({ title: '请输入毛毛号和密码', icon: 'none' })
     }
