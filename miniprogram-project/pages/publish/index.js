@@ -16,11 +16,7 @@ Page({
 
   async onLoad() {
     const app = getApp()
-    await app.refreshMiniappConfig()
-    if (app.globalData.readonlyMode) {
-      wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
-      return wx.navigateBack({ delta: 1 })
-    }
+    if (!(await app.ensureInteractivePage({ toast: false }))) return
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: '请先登录', icon: 'none' })
       return wx.redirectTo({ url: '/pages/login/index' })
@@ -34,19 +30,24 @@ Page({
   },
 
   async onShow() {
+    const app = getApp()
+    if (!(await app.ensureInteractivePage({ toast: false }))) return
     if (!wx.getStorageSync('token')) return
-    const state = await getApp().validateSession(false)
+    const state = await app.validateSession(false)
     if (state === false) wx.redirectTo({ url: '/pages/login/index' })
   },
 
   async ensureSession() {
+    const app = getApp()
+    if (!(await app.ensureInteractivePage())) return false
+
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: '请先登录', icon: 'none' })
       wx.navigateTo({ url: '/pages/login/index' })
       return false
     }
 
-    const state = await getApp().validateSession(true)
+    const state = await app.validateSession(true)
     if (state === true) return true
 
     if (state === false) {
@@ -149,8 +150,7 @@ Page({
     wx.showLoading({ title: '正在发布', mask: true })
     try {
       const app = getApp()
-      await app.refreshMiniappConfig()
-      if (app.globalData.readonlyMode) throw new Error('小程序当前处于只读模式')
+      if (!(await app.ensureInteractivePage())) throw new Error('当前仅支持浏览')
 
       const category = this.data.categoryIndex >= 0 ? this.data.categories[this.data.categoryIndex] : null
       const tags = this.data.tagsText
