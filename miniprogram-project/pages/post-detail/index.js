@@ -19,7 +19,7 @@ Page({
     currentMediaHeight: DEFAULT_MEDIA_HEIGHT_RPX,
     currentImageIndex: 0,
     currentImageCanShowOriginal: false,
-    readonlyMode: false,
+    readonlyMode: true,
     loggedIn: false,
     loading: true
   },
@@ -35,13 +35,21 @@ Page({
     await this.loadPost()
     if (!this.data.readonlyMode) await this.loadComments()
   },
-  async onShow() { await this.syncMode() },
+  async onShow() {
+    const wasReadonly = this.data.readonlyMode
+    await this.syncMode()
+    if (this.data.readonlyMode) {
+      if (this.data.comments.length || this.data.commentText) this.setData({ comments: [], commentText: '' })
+      return
+    }
+    if (wasReadonly && this.data.post && this.data.comments.length === 0) await this.loadComments()
+  },
   async syncMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
     this.setData({
       readonlyMode: app.globalData.readonlyMode,
-      loggedIn: Boolean(wx.getStorageSync('token'))
+      loggedIn: app.globalData.interactiveEnabled && Boolean(wx.getStorageSync('token'))
     })
   },
   async loadPost() {
@@ -69,6 +77,7 @@ Page({
     }
   },
   async loadComments() {
+    if (this.data.readonlyMode) return
     try {
       const result = await api.getComments(this.data.id)
       this.setData({ comments: (result && result.comments) || [] })
@@ -162,8 +171,12 @@ Page({
   },
   onCommentInput(event) { this.setData({ commentText: event.detail.value }) },
   handleCommentInputTap() { if (!this.data.loggedIn) this.goLogin() },
-  goLogin() { wx.navigateTo({ url: '/pages/login/index' }) },
+  async goLogin() {
+    if (!(await getApp().ensureInteractivePage())) return
+    wx.navigateTo({ url: '/pages/login/index' })
+  },
   async submitComment() {
+    if (!(await getApp().ensureInteractivePage())) return
     const content = this.data.commentText.trim()
     if (!content) return
     if (!this.data.loggedIn) return this.goLogin()
