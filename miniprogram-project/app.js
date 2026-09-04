@@ -1,23 +1,10 @@
 const api = require('./services/api')
 
-const READONLY_FEATURES = Object.freeze({
-  browse: true,
-  share: true,
-  login: false,
-  profile: false,
-  publish: false,
-  comment: false,
-  like: false,
-  collect: false
-})
-
 App({
   globalData: {
-    // Fail closed until the server explicitly confirms interactive mode.
-    mode: 'readonly',
-    readonlyMode: true,
-    interactiveEnabled: false,
-    features: { ...READONLY_FEATURES },
+    auditConfig: {
+      auditModeEnabled: true
+    },
     configLoaded: false,
     user: null,
     sessionValid: false,
@@ -31,7 +18,7 @@ App({
 
   async onShow() {
     const result = await this.refreshMiniappConfig()
-    if (result && this.globalData.interactiveEnabled && wx.getStorageSync('token')) {
+    if (result && !this.isAuditModeEnabled() && wx.getStorageSync('token')) {
       await this.validateSession(true)
     }
   },
@@ -41,8 +28,12 @@ App({
     this.globalData.sessionValid = Boolean(wx.getStorageSync('token'))
   },
 
+  isAuditModeEnabled() {
+    return Boolean(this.globalData.auditConfig && this.globalData.auditConfig.auditModeEnabled)
+  },
+
   async validateSession(force = false) {
-    if (!this.globalData.interactiveEnabled) return false
+    if (this.isAuditModeEnabled()) return false
 
     const token = wx.getStorageSync('token')
     if (!token) {
@@ -76,32 +67,19 @@ App({
   },
 
   applyMiniappConfig(result) {
-    const readonlyMode = Boolean(result && result.readonly_mode)
-    const interactiveEnabled = !readonlyMode
-    this.globalData.mode = readonlyMode ? 'readonly' : 'interactive'
-    this.globalData.readonlyMode = readonlyMode
-    this.globalData.interactiveEnabled = interactiveEnabled
-    this.globalData.features = result && result.features
-      ? { ...READONLY_FEATURES, ...result.features }
-      : {
-          browse: true,
-          share: true,
-          login: interactiveEnabled,
-          profile: interactiveEnabled,
-          publish: interactiveEnabled,
-          comment: interactiveEnabled,
-          like: interactiveEnabled,
-          collect: interactiveEnabled
-        }
+    const auditModeEnabled = Boolean(
+      result &&
+      result.auditConfig &&
+      result.auditConfig.auditModeEnabled === true
+    )
+
+    this.globalData.auditConfig = { auditModeEnabled }
     this.globalData.configLoaded = true
     return result
   },
 
-  setReadonlyFallback() {
-    this.globalData.mode = 'readonly'
-    this.globalData.readonlyMode = true
-    this.globalData.interactiveEnabled = false
-    this.globalData.features = { ...READONLY_FEATURES }
+  setAuditFallback() {
+    this.globalData.auditConfig = { auditModeEnabled: true }
   },
 
   async refreshMiniappConfig() {
@@ -109,28 +87,18 @@ App({
       const result = await api.getMiniappConfig()
       return this.applyMiniappConfig(result)
     } catch (error) {
-      // Do not expose interactive features when config cannot be verified.
-      console.warn('读取小程序模式失败，保持只读:', error)
-      this.setReadonlyFallback()
+      console.warn('读取小程序审核配置失败，保持审核模式:', error)
+      this.setAuditFallback()
       return null
     }
   },
 
-  async ensureInteractivePage({ toast = true } = {}) {
+  async ensureNormalMode({ toast = true } = {}) {
     await this.refreshMiniappConfig()
-    if (this.globalData.interactiveEnabled) return true
+    if (!this.isAuditModeEnabled()) return true
 
     if (toast) wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
     setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
-    return false
-  },
-
-  async ensureFeature(feature, { toast = true, redirect = false } = {}) {
-    await this.refreshMiniappConfig()
-    if (this.globalData.features && this.globalData.features[feature]) return true
-
-    if (toast) wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
-    if (redirect) setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
     return false
   }
 })
