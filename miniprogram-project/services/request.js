@@ -1,7 +1,7 @@
 const { apiBaseUrl } = require('../config')
 
 let lastUnauthorizedNoticeAt = 0
-let lastReadonlyRedirectAt = 0
+let lastAuditRedirectAt = 0
 
 function getToken() {
   return wx.getStorageSync('token') || ''
@@ -27,22 +27,19 @@ function handleUnauthorized() {
   wx.showToast({ title: '登录已失效，请重新登录', icon: 'none' })
 }
 
-function handleReadonly() {
+function handleAuditMode() {
   try {
     const app = getApp()
     if (app) {
-      if (typeof app.setReadonlyFallback === 'function') app.setReadonlyFallback()
-      else if (app.globalData) {
-        app.globalData.readonlyMode = true
-        app.globalData.interactiveEnabled = false
-      }
+      if (typeof app.setAuditFallback === 'function') app.setAuditFallback()
+      else if (app.globalData) app.globalData.auditConfig = { auditModeEnabled: true }
       if (app.globalData) app.globalData.configLoaded = true
     }
   } catch (error) {}
 
   const now = Date.now()
-  if (now - lastReadonlyRedirectAt < 1500) return
-  lastReadonlyRedirectAt = now
+  if (now - lastAuditRedirectAt < 1500) return
+  lastAuditRedirectAt = now
   wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
   setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 100)
 }
@@ -56,6 +53,10 @@ function buildHeaders(extra = {}) {
   }
   if (token) headers.Authorization = `Bearer ${token}`
   return headers
+}
+
+function isAuditModeResponse(statusCode, body = {}) {
+  return statusCode === 403 && (body.error === 'MINIAPP_AUDIT_MODE' || body.error === 'MINIAPP_READONLY')
 }
 
 function request({ url, method = 'GET', data, header = {} }) {
@@ -72,7 +73,7 @@ function request({ url, method = 'GET', data, header = {} }) {
           return
         }
         if (res.statusCode === 401) handleUnauthorized()
-        if (res.statusCode === 403 && body.error === 'MINIAPP_READONLY') handleReadonly()
+        if (isAuditModeResponse(res.statusCode, body)) handleAuditMode()
         const error = new Error(body.message || `请求失败 (${res.statusCode})`)
         error.statusCode = res.statusCode
         error.code = body.code
@@ -104,7 +105,7 @@ function uploadFile({ url, filePath, name = 'file', formData = {} }) {
           return
         }
         if (res.statusCode === 401) handleUnauthorized()
-        if (res.statusCode === 403 && body.error === 'MINIAPP_READONLY') handleReadonly()
+        if (isAuditModeResponse(res.statusCode, body)) handleAuditMode()
         const requestError = new Error(body.message || `上传失败 (${res.statusCode})`)
         requestError.statusCode = res.statusCode
         requestError.error = body.error
