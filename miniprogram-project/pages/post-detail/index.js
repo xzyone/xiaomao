@@ -55,7 +55,7 @@ Page({
   },
   async loadPost() {
     try {
-      const post = await api.getPostDetail(this.data.id)
+      const post = await api.detail(this.data.id)
       const originalImages = Array.isArray(post.images) ? post.images : []
       const thumbnailImages = Array.isArray(post.thumbnail_images) ? post.thumbnail_images : []
       const displayImages = originalImages.map((original, index) => thumbnailImages[index] || original)
@@ -80,7 +80,7 @@ Page({
   async loadComments() {
     if (this.data.auditModeEnabled) return
     try {
-      const result = await api.getComments(this.data.id)
+      const result = await api.msgs(this.data.id)
       this.setData({ comments: (result && result.comments) || [] })
     } catch (error) {
       if (error.error !== 'MINIAPP_AUDIT_MODE' && error.error !== 'MINIAPP_READONLY') {
@@ -184,7 +184,7 @@ Page({
     if (!content) return
     if (!this.data.loggedIn) return this.goLogin()
     try {
-      await api.createComment(this.data.id, content)
+      await api.msg(this.data.id, content)
       this.setData({ commentText: '' })
       await this.loadComments()
       wx.showToast({ title: '评论成功', icon: 'success' })
