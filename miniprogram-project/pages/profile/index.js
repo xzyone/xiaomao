@@ -7,11 +7,13 @@ Page({
     user: null,
     avatarUrl: DEFAULT_AVATAR,
     readonlyMode: true,
-    loading: true
+    loading: true,
+    pageAllowed: false
   },
   async onShow() {
     const app = getApp()
     if (!(await app.ensureInteractivePage({ toast: false }))) return
+    if (!this.data.pageAllowed) this.setData({ pageAllowed: true, readonlyMode: false })
 
     const token = wx.getStorageSync('token')
     if (!token) {
