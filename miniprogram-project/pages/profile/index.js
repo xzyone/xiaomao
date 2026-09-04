@@ -6,13 +6,12 @@ Page({
   data: {
     user: null,
     avatarUrl: DEFAULT_AVATAR,
-    readonlyMode: false,
+    readonlyMode: true,
     loading: true
   },
   async onShow() {
     const app = getApp()
-    await app.refreshMiniappConfig()
-    if (app.globalData.readonlyMode) return wx.reLaunch({ url: '/pages/home/index' })
+    if (!(await app.ensureInteractivePage({ toast: false }))) return
 
     const token = wx.getStorageSync('token')
     if (!token) {
