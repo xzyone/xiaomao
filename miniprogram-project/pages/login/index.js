@@ -14,15 +14,17 @@ Page({
     logoLoadFailed: false
   },
   async onLoad() {
-    const app = getApp()
-    await app.refreshMiniappConfig()
-    if (app.globalData.readonlyMode) wx.navigateBack({ delta: 1 })
+    await getApp().ensureInteractivePage({ toast: false })
+  },
+  async onShow() {
+    await getApp().ensureInteractivePage({ toast: false })
   },
   onUserIdInput(event) { this.setData({ userId: event.detail.value }) },
   onPasswordInput(event) { this.setData({ password: event.detail.value }) },
   onLogoError() { this.setData({ logoLoadFailed: true }) },
   async submit() {
     if (this.data.submitting) return
+    if (!(await getApp().ensureInteractivePage())) return
     if (!this.data.userId.trim() || !this.data.password) {
       return wx.showToast({ title: '请输入毛毛号和密码', icon: 'none' })
     }
