@@ -3,6 +3,20 @@ const { HTTP_STATUS, RESPONSE_CODES } = require('../constants');
 
 const MINIAPP_SETTING_KEY = 'miniapp_readonly_mode';
 const MINIAPP_CLIENT_HEADER = 'wechat-miniapp';
+const MINIAPP_UI_TITLE_KEYS = Object.freeze({
+  home: 'miniapp_title_home',
+  detail: 'miniapp_title_detail',
+  editor: 'miniapp_title_editor',
+  login: 'miniapp_title_login',
+  profile: 'miniapp_title_profile'
+});
+const MINIAPP_UI_TITLE_DEFAULTS = Object.freeze({
+  home: '小毛毛',
+  detail: '笔记详情',
+  editor: '发布笔记',
+  login: '登录',
+  profile: '我的'
+});
 let ensureSettingsTablePromise = null;
 
 async function ensureSystemSettingsTable() {
@@ -17,10 +31,20 @@ async function ensureSystemSettingsTable() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统设置'
       `);
 
-      await pool.execute(
-        'INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES (?, ?)',
-        [MINIAPP_SETTING_KEY, '0']
-      );
+      const defaults = [
+        [MINIAPP_SETTING_KEY, '0'],
+        ...Object.entries(MINIAPP_UI_TITLE_KEYS).map(([name, settingKey]) => [
+          settingKey,
+          MINIAPP_UI_TITLE_DEFAULTS[name]
+        ])
+      ];
+
+      for (const [settingKey, settingValue] of defaults) {
+        await pool.execute(
+          'INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES (?, ?)',
+          [settingKey, settingValue]
+        );
+      }
     })().catch(error => {
       ensureSettingsTablePromise = null;
       throw error;
@@ -54,6 +78,53 @@ async function setMiniappReadonlyMode(enabled) {
   );
 
   return Boolean(enabled);
+}
+
+async function getMiniappUiConfig() {
+  await ensureSystemSettingsTable();
+
+  const settingKeys = Object.values(MINIAPP_UI_TITLE_KEYS);
+  const placeholders = settingKeys.map(() => '?').join(', ');
+  const [rows] = await pool.execute(
+    `SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN (${placeholders})`,
+    settingKeys
+  );
+
+  const titles = { ...MINIAPP_UI_TITLE_DEFAULTS };
+  const keyToName = Object.fromEntries(
+    Object.entries(MINIAPP_UI_TITLE_KEYS).map(([name, settingKey]) => [settingKey, name])
+  );
+
+  for (const row of rows) {
+    const name = keyToName[row.setting_key];
+    const value = String(row.setting_value || '').trim();
+    if (name && value) titles[name] = value;
+  }
+
+  return { titles };
+}
+
+async function setMiniappUiConfig(config = {}) {
+  await ensureSystemSettingsTable();
+
+  const titles = config && config.titles && typeof config.titles === 'object'
+    ? config.titles
+    : {};
+
+  for (const [name, settingKey] of Object.entries(MINIAPP_UI_TITLE_KEYS)) {
+    if (!Object.prototype.hasOwnProperty.call(titles, name)) continue;
+    const value = String(titles[name] || '').trim();
+    if (!value) continue;
+
+    await pool.execute(
+      `INSERT INTO system_settings (setting_key, setting_value)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [settingKey, value]
+    );
+  }
+
+  return getMiniappUiConfig();
 }
 
 function isMiniappRequest(req) {
@@ -132,8 +203,12 @@ async function miniappReadonlyGuard(req, res, next) {
 
 module.exports = {
   MINIAPP_SETTING_KEY,
+  MINIAPP_UI_TITLE_KEYS,
+  MINIAPP_UI_TITLE_DEFAULTS,
   getMiniappReadonlyMode,
   setMiniappReadonlyMode,
+  getMiniappUiConfig,
+  setMiniappUiConfig,
   isMiniappRequest,
   miniappReadonlyGuard
 };
