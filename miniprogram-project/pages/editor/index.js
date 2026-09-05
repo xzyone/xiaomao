@@ -12,16 +12,17 @@ Page({
     tagsText: '',
     submitting: false,
     uploading: false,
-    pageAllowed: false
+    pageAllowed: false,
+    ui: { labels: {}, placeholders: {} }
   },
 
   async onLoad() {
     const app = getApp()
     if (!(await app.ensureNormalMode({ toast: false }))) return
     app.setPageTitle('editor')
-    this.setData({ pageAllowed: true })
+    this.setData({ pageAllowed: true, ui: app.getUi() })
     if (!wx.getStorageSync('token')) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
+      wx.showToast({ title: app.getUiText('messages', 'loginRequired'), icon: 'none' })
       return wx.redirectTo({ url: '/pages/login/index' })
     }
     try {
@@ -36,6 +37,7 @@ Page({
     const app = getApp()
     if (!(await app.ensureNormalMode({ toast: false }))) return
     app.setPageTitle('editor')
+    this.setData({ ui: app.getUi() })
     if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
     if (!wx.getStorageSync('token')) return
     const state = await app.validateSession(false)
@@ -47,7 +49,7 @@ Page({
     if (!(await app.ensureNormalMode())) return false
 
     if (!wx.getStorageSync('token')) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
+      wx.showToast({ title: app.getUiText('messages', 'loginRequired'), icon: 'none' })
       wx.navigateTo({ url: '/pages/login/index' })
       return false
     }
@@ -60,7 +62,7 @@ Page({
       return false
     }
 
-    wx.showToast({ title: '暂时无法验证登录状态，请检查网络', icon: 'none' })
+    wx.showToast({ title: app.getUiText('messages', 'sessionUnavailable'), icon: 'none' })
     return false
   },
 
@@ -137,7 +139,7 @@ Page({
       coverUrl = cover && cover.url ? cover.url : null
     }
     const uploaded = await api.video(this.data.video.path)
-    if (!uploaded || !uploaded.url) throw new Error('视频上传失败')
+    if (!uploaded || !uploaded.url) throw new Error(getApp().getUiText('messages', 'editorVideoFailed'))
     return { url: uploaded.url, coverUrl: coverUrl || uploaded.coverUrl || null }
   },
 
@@ -145,17 +147,17 @@ Page({
     if (this.data.submitting || this.data.uploading) return
     if (!(await this.ensureSession())) return
 
+    const app = getApp()
     const title = this.data.title.trim()
     const content = this.data.content.trim()
-    if (!title || !content) return wx.showToast({ title: '标题和正文不能为空', icon: 'none' })
-    if (this.data.type === 1 && this.data.images.length === 0) return wx.showToast({ title: '请选择至少一张图片', icon: 'none' })
-    if (this.data.type === 2 && !this.data.video) return wx.showToast({ title: '请选择视频', icon: 'none' })
+    if (!title || !content) return wx.showToast({ title: app.getUiText('messages', 'editorTitleContentRequired'), icon: 'none' })
+    if (this.data.type === 1 && this.data.images.length === 0) return wx.showToast({ title: app.getUiText('messages', 'editorImageRequired'), icon: 'none' })
+    if (this.data.type === 2 && !this.data.video) return wx.showToast({ title: app.getUiText('messages', 'editorVideoRequired'), icon: 'none' })
 
     this.setData({ submitting: true, uploading: true })
-    wx.showLoading({ title: '正在发布', mask: true })
+    wx.showLoading({ title: app.getUiText('messages', 'editorSubmitting'), mask: true })
     try {
-      const app = getApp()
-      if (!(await app.ensureNormalMode())) throw new Error('当前仅支持浏览')
+      if (!(await app.ensureNormalMode())) throw new Error(app.getUiText('messages', 'browseOnly'))
 
       const category = this.data.categoryIndex >= 0 ? this.data.categories[this.data.categoryIndex] : null
       const tags = this.data.tagsText
@@ -176,11 +178,14 @@ Page({
 
       const result = await api.post(payload)
       wx.hideLoading()
-      wx.showToast({ title: result && result.review_required ? '已提交审核' : '发布成功', icon: 'success' })
+      wx.showToast({
+        title: app.getUiText('messages', result && result.review_required ? 'editorReviewSubmitted' : 'editorSuccess'),
+        icon: 'success'
+      })
       setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 500)
     } catch (error) {
       wx.hideLoading()
-      wx.showToast({ title: error.message || '发布失败', icon: 'none' })
+      wx.showToast({ title: error.message || app.getUiText('messages', 'editorFailed'), icon: 'none' })
     } finally {
       this.setData({ submitting: false, uploading: false })
     }
