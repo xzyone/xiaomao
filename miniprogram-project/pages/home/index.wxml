@@ -1,22 +1,22 @@
 <view class="page-shell home-page">
   <view class="brand-row">
     <view class="brand-main">
-      <text class="brand-title">小毛毛</text>
-      <text class="brand-subtitle">毛毛的快乐狗生</text>
+      <text class="brand-title">{{ui.labels.homeBrand}}</text>
+      <text class="brand-subtitle">{{ui.labels.homeSubtitle}}</text>
     </view>
   </view>
   <scroll-view class="channel-scroll" scroll-x enable-flex show-scrollbar="false">
     <view class="channel-list">
-      <view class="channel-item {{currentCategory === 'recommend' ? 'active' : ''}}" data-category="recommend" bindtap="changeCategory">推荐</view>
+      <view class="channel-item {{currentCategory === 'recommend' ? 'active' : ''}}" data-category="recommend" bindtap="changeCategory">{{ui.labels.recommend}}</view>
       <view wx:for="{{categories}}" wx:key="id" class="channel-item {{currentCategory == item.id ? 'active' : ''}}" data-category="{{item.id}}" bindtap="changeCategory">{{item.name}}</view>
     </view>
   </scroll-view>
   <view class="waterfall">
-    <view class="column"><post-card wx:for="{{leftPosts}}" wx:key="id" post="{{item}}" /></view>
-    <view class="column"><post-card wx:for="{{rightPosts}}" wx:key="id" post="{{item}}" /></view>
+    <view class="column"><post-card wx:for="{{leftPosts}}" wx:key="id" post="{{item}}" labels="{{ui.labels}}" /></view>
+    <view class="column"><post-card wx:for="{{rightPosts}}" wx:key="id" post="{{item}}" labels="{{ui.labels}}" /></view>
   </view>
-  <view wx:if="{{loading}}" class="load-state">加载中...</view>
-  <view wx:elif="{{posts.length && !hasMore}}" class="load-state">已经到底啦</view>
-  <view wx:elif="{{!posts.length && !loading}}" class="empty-state">还没有内容</view>
-  <bottom-nav current="home" audit-mode-enabled="{{auditModeEnabled}}" />
+  <view wx:if="{{loading}}" class="load-state">{{ui.labels.loading}}</view>
+  <view wx:elif="{{posts.length && !hasMore}}" class="load-state">{{ui.labels.reachedEnd}}</view>
+  <view wx:elif="{{!posts.length && !loading}}" class="empty-state">{{ui.labels.emptyContent}}</view>
+  <bottom-nav current="home" audit-mode-enabled="{{auditModeEnabled}}" labels="{{ui.labels}}" />
 </view>
