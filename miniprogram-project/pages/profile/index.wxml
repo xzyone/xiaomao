@@ -2,18 +2,18 @@
   <view wx:if="{{user}}" class="profile-card">
     <image class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill" binderror="onAvatarError" />
     <text class="nickname">{{user.nickname}}</text>
-    <text class="account">毛毛号：{{user.user_id}}</text>
-    <text class="bio">{{user.bio || '还没有个人简介'}}</text>
+    <text class="account">{{ui.labels.profileAccountPrefix}}{{user.user_id}}</text>
+    <text class="bio">{{user.bio || ui.labels.profileEmptyBio}}</text>
     <view class="stats-row">
-      <view><text class="number">{{user.follow_count || 0}}</text><text class="stat-label">关注</text></view>
-      <view><text class="number">{{user.fans_count || 0}}</text><text class="stat-label">粉丝</text></view>
-      <view><text class="number">{{user.like_count || 0}}</text><text class="stat-label">获赞</text></view>
+      <view><text class="number">{{user.follow_count || 0}}</text><text class="stat-label">{{ui.labels.profileFollowing}}</text></view>
+      <view><text class="number">{{user.fans_count || 0}}</text><text class="stat-label">{{ui.labels.profileFans}}</text></view>
+      <view><text class="number">{{user.like_count || 0}}</text><text class="stat-label">{{ui.labels.profileLikes}}</text></view>
     </view>
-    <button class="secondary-button" bindtap="logout">退出登录</button>
+    <button class="secondary-button" bindtap="logout">{{ui.labels.profileLogout}}</button>
   </view>
   <view wx:elif="{{!loading}}" class="guest-card">
-    <text class="guest-title">登录小毛毛</text>
-    <button class="primary-button" bindtap="goLogin">去登录</button>
+    <text class="guest-title">{{ui.labels.profileGuestTitle}}</text>
+    <button class="primary-button" bindtap="goLogin">{{ui.labels.profileGoLogin}}</button>
   </view>
-  <bottom-nav current="profile" audit-mode-enabled="{{auditModeEnabled}}" />
+  <bottom-nav current="profile" audit-mode-enabled="{{auditModeEnabled}}" labels="{{ui.labels}}" />
 </view>
