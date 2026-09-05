@@ -6,10 +6,22 @@ const AUDIT_RESTRICTED_ROUTES = new Set([
   'pages/profile/index'
 ])
 
+const UI_TITLE_KEYS = ['home', 'detail', 'editor', 'login', 'profile']
+const DEFAULT_UI_TITLES = Object.freeze({
+  home: '小毛毛',
+  detail: '小毛毛',
+  editor: '小毛毛',
+  login: '小毛毛',
+  profile: '小毛毛'
+})
+
 App({
   globalData: {
     auditConfig: {
       auditModeEnabled: true
+    },
+    ui: {
+      titles: { ...DEFAULT_UI_TITLES }
     },
     configLoaded: false,
     user: null,
@@ -39,6 +51,19 @@ App({
 
   isAuditModeEnabled() {
     return Boolean(this.globalData.auditConfig && this.globalData.auditConfig.auditModeEnabled)
+  },
+
+  getUiTitle(name) {
+    const title = this.globalData.ui && this.globalData.ui.titles
+      ? this.globalData.ui.titles[name]
+      : ''
+    return typeof title === 'string' && title.trim() ? title.trim() : '小毛毛'
+  },
+
+  setPageTitle(name) {
+    const title = this.getUiTitle(name)
+    if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title })
+    return title
   },
 
   currentRoute(path) {
@@ -108,7 +133,18 @@ App({
       result.auditConfig.auditModeEnabled === false
     )
 
+    const remoteTitles = result && result.ui && result.ui.titles && typeof result.ui.titles === 'object'
+      ? result.ui.titles
+      : {}
+    const titles = { ...DEFAULT_UI_TITLES }
+
+    UI_TITLE_KEYS.forEach(key => {
+      const value = remoteTitles[key]
+      if (typeof value === 'string' && value.trim()) titles[key] = value.trim()
+    })
+
     this.globalData.auditConfig = { auditModeEnabled }
+    this.globalData.ui = { titles }
     this.globalData.configLoaded = true
     return result
   },
@@ -122,7 +158,7 @@ App({
       const result = await api.getMiniappConfig()
       return this.applyMiniappConfig(result)
     } catch (error) {
-      console.warn('读取小程序审核配置失败，保持审核模式:', error)
+      console.warn('读取小程序配置失败，保持安全默认状态:', error)
       this.setAuditFallback()
       return null
     }
