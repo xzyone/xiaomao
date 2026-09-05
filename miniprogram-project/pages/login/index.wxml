@@ -2,15 +2,15 @@
   <view class="login-brand">
     <image wx:if="{{logoUrl && !logoLoadFailed}}" class="brand-logo" src="{{logoUrl}}" mode="aspectFill" binderror="onLogoError" />
     <view wx:else class="brand-logo brand-logo-fallback">毛</view>
-    <text class="logo-text">小毛毛</text>
-    <text class="subtitle">登录后和家人一起记录毛毛</text>
+    <text class="logo-text">{{ui.labels.loginBrand}}</text>
+    <text class="subtitle">{{ui.labels.loginSubtitle}}</text>
   </view>
   <view class="form-card">
-    <text class="label">毛毛号</text>
-    <input class="input" value="{{userId}}" placeholder="请输入毛毛号" bindinput="onUserIdInput" />
-    <text class="label second">密码</text>
-    <input class="input" value="{{password}}" password placeholder="请输入密码" bindinput="onPasswordInput" />
-    <button class="login-button" loading="{{submitting}}" bindtap="submit">登录</button>
-    <text class="hint">注册和找回密码请前往网页端操作。</text>
+    <text class="label">{{ui.labels.loginAccount}}</text>
+    <input class="input" value="{{userId}}" placeholder="{{ui.placeholders.loginAccount}}" bindinput="onUserIdInput" />
+    <text class="label second">{{ui.labels.loginPassword}}</text>
+    <input class="input" value="{{password}}" password placeholder="{{ui.placeholders.loginPassword}}" bindinput="onPasswordInput" />
+    <button class="login-button" loading="{{submitting}}" bindtap="submit">{{ui.labels.loginSubmit}}</button>
+    <text class="hint">{{ui.labels.loginHint}}</text>
   </view>
 </view>
