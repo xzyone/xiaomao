@@ -13,6 +13,7 @@ Page({
   async onShow() {
     const app = getApp()
     if (!(await app.ensureNormalMode({ toast: false }))) return
+    wx.setNavigationBarTitle({ title: '我的' })
     if (!this.data.pageAllowed) this.setData({ pageAllowed: true, auditModeEnabled: false })
 
     const token = wx.getStorageSync('token')
