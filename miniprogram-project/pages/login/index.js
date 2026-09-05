@@ -16,11 +16,17 @@ Page({
   },
   async onLoad() {
     const allowed = await getApp().ensureNormalMode({ toast: false })
-    if (allowed) this.setData({ pageAllowed: true })
+    if (allowed) {
+      wx.setNavigationBarTitle({ title: '登录' })
+      this.setData({ pageAllowed: true })
+    }
   },
   async onShow() {
     const allowed = await getApp().ensureNormalMode({ toast: false })
-    if (allowed && !this.data.pageAllowed) this.setData({ pageAllowed: true })
+    if (allowed && !this.data.pageAllowed) {
+      wx.setNavigationBarTitle({ title: '登录' })
+      this.setData({ pageAllowed: true })
+    }
   },
   onUserIdInput(event) { this.setData({ userId: event.detail.value }) },
   onPasswordInput(event) { this.setData({ password: event.detail.value }) },
