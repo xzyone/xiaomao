@@ -47,6 +47,7 @@ Page({
   async syncAuditMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
+    app.setPageTitle('detail')
     const auditModeEnabled = app.isAuditModeEnabled()
     this.setData({
       auditModeEnabled,
