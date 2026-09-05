@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { RESPONSE_CODES } = require('../constants');
-const { getMiniappReadonlyMode } = require('../utils/miniappPolicy');
+const { getMiniappReadonlyMode, getMiniappUiConfig } = require('../utils/miniappPolicy');
 
 router.get('/config', async (req, res) => {
   try {
-    const auditModeEnabled = await getMiniappReadonlyMode();
+    const [auditModeEnabled, ui] = await Promise.all([
+      getMiniappReadonlyMode(),
+      getMiniappUiConfig()
+    ]);
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.json({
@@ -14,7 +17,8 @@ router.get('/config', async (req, res) => {
       data: {
         auditConfig: {
           auditModeEnabled
-        }
+        },
+        ui
       }
     });
   } catch (error) {
