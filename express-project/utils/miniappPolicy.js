@@ -85,18 +85,27 @@ const MINIAPP_UI_DEFAULTS = Object.freeze({
   })
 });
 
-const MINIAPP_UI_SETTING_KEYS = Object.freeze(
-  Object.fromEntries(
-    Object.entries(MINIAPP_UI_DEFAULTS).map(([group, values]) => [
-      group,
-      Object.freeze(
-        Object.fromEntries(
-          Object.keys(values).map(name => [name, `miniapp_ui_${group}_${name}`])
+const MINIAPP_UI_SETTING_KEYS = Object.freeze({
+  titles: Object.freeze({
+    home: 'miniapp_title_home',
+    detail: 'miniapp_title_detail',
+    editor: 'miniapp_title_editor',
+    login: 'miniapp_title_login',
+    profile: 'miniapp_title_profile'
+  }),
+  ...Object.fromEntries(
+    Object.entries(MINIAPP_UI_DEFAULTS)
+      .filter(([group]) => group !== 'titles')
+      .map(([group, values]) => [
+        group,
+        Object.freeze(
+          Object.fromEntries(
+            Object.keys(values).map(name => [name, `miniapp_ui_${group}_${name}`])
+          )
         )
-      )
-    ])
+      ])
   )
-);
+});
 
 const MINIAPP_UI_TITLE_KEYS = MINIAPP_UI_SETTING_KEYS.titles;
 const MINIAPP_UI_TITLE_DEFAULTS = MINIAPP_UI_DEFAULTS.titles;
