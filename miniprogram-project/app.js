@@ -1,5 +1,11 @@
 const api = require('./services/api')
 
+const AUDIT_RESTRICTED_ROUTES = new Set([
+  'pages/editor/index',
+  'pages/login/index',
+  'pages/profile/index'
+])
+
 App({
   globalData: {
     auditConfig: {
@@ -8,16 +14,19 @@ App({
     configLoaded: false,
     user: null,
     sessionValid: false,
-    lastSessionCheckAt: 0
+    lastSessionCheckAt: 0,
+    auditRedirecting: false
   },
 
-  async onLaunch() {
+  async onLaunch(options) {
     this.restoreSession()
     await this.refreshMiniappConfig()
+    this.guardAuditRoute(options && options.path)
   },
 
-  async onShow() {
+  async onShow(options) {
     const result = await this.refreshMiniappConfig()
+    if (this.guardAuditRoute(options && options.path)) return
     if (result && !this.isAuditModeEnabled() && wx.getStorageSync('token')) {
       await this.validateSession(true)
     }
@@ -30,6 +39,32 @@ App({
 
   isAuditModeEnabled() {
     return Boolean(this.globalData.auditConfig && this.globalData.auditConfig.auditModeEnabled)
+  },
+
+  currentRoute(path) {
+    const explicitRoute = String(path || '').replace(/^\/+/, '')
+    if (explicitRoute) return explicitRoute
+    const pages = getCurrentPages()
+    return pages.length ? String(pages[pages.length - 1].route || '') : ''
+  },
+
+  guardAuditRoute(path) {
+    if (!this.isAuditModeEnabled()) return false
+
+    const route = this.currentRoute(path)
+    if (!AUDIT_RESTRICTED_ROUTES.has(route)) return false
+    if (this.globalData.auditRedirecting) return true
+
+    this.globalData.auditRedirecting = true
+    wx.reLaunch({
+      url: '/pages/home/index',
+      complete: () => {
+        setTimeout(() => {
+          this.globalData.auditRedirecting = false
+        }, 200)
+      }
+    })
+    return true
   },
 
   async validateSession(force = false) {
@@ -98,7 +133,9 @@ App({
     if (!this.isAuditModeEnabled()) return true
 
     if (toast) wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
-    setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
+    if (!this.guardAuditRoute()) {
+      setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
+    }
     return false
   }
 })
