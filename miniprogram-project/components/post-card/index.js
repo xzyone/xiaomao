@@ -1,6 +1,7 @@
 Component({
   properties: {
-    post: { type: Object, value: {} }
+    post: { type: Object, value: {} },
+    labels: { type: Object, value: {} }
   },
   data: {
     avatarFailed: false
