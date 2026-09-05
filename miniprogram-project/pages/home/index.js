@@ -25,6 +25,7 @@ Page({
   async syncAuditMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
+    app.setPageTitle('home')
     this.setData({ auditModeEnabled: app.isAuditModeEnabled() })
   },
   async loadCategories() {
