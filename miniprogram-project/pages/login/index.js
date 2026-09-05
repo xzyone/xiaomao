@@ -12,14 +12,15 @@ Page({
     submitting: false,
     logoUrl,
     logoLoadFailed: false,
-    pageAllowed: false
+    pageAllowed: false,
+    ui: { labels: {}, placeholders: {} }
   },
   async onLoad() {
     const app = getApp()
     const allowed = await app.ensureNormalMode({ toast: false })
     if (allowed) {
       app.setPageTitle('login')
-      this.setData({ pageAllowed: true })
+      this.setData({ pageAllowed: true, ui: app.getUi() })
     }
   },
   async onShow() {
@@ -27,6 +28,7 @@ Page({
     const allowed = await app.ensureNormalMode({ toast: false })
     if (allowed) {
       app.setPageTitle('login')
+      this.setData({ ui: app.getUi() })
       if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
     }
   },
@@ -35,9 +37,10 @@ Page({
   onLogoError() { this.setData({ logoLoadFailed: true }) },
   async submit() {
     if (this.data.submitting) return
-    if (!(await getApp().ensureNormalMode())) return
+    const app = getApp()
+    if (!(await app.ensureNormalMode())) return
     if (!this.data.userId.trim() || !this.data.password) {
-      return wx.showToast({ title: '请输入毛毛号和密码', icon: 'none' })
+      return wx.showToast({ title: app.getUiText('messages', 'loginCredentialsRequired'), icon: 'none' })
     }
     this.setData({ submitting: true })
     try {
@@ -45,14 +48,13 @@ Page({
       wx.setStorageSync('token', result.tokens.access_token)
       wx.setStorageSync('refresh_token', result.tokens.refresh_token)
       wx.setStorageSync('user', result.user)
-      const app = getApp()
       app.globalData.user = result.user
       app.globalData.sessionValid = true
       app.globalData.lastSessionCheckAt = Date.now()
-      wx.showToast({ title: '登录成功', icon: 'success' })
+      wx.showToast({ title: app.getUiText('messages', 'loginSuccess'), icon: 'success' })
       setTimeout(() => wx.navigateBack({ delta: 1 }), 300)
     } catch (error) {
-      wx.showToast({ title: error.message || '登录失败', icon: 'none' })
+      wx.showToast({ title: error.message || app.getUiText('messages', 'loginFailed'), icon: 'none' })
     } finally {
       this.setData({ submitting: false })
     }
