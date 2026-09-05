@@ -21,7 +21,8 @@ Page({
     currentImageCanShowOriginal: false,
     auditModeEnabled: true,
     loggedIn: false,
-    loading: true
+    loading: true,
+    ui: { labels: {}, placeholders: {} }
   },
   async onLoad(options) {
     this.setData({ id: options.id })
@@ -51,7 +52,8 @@ Page({
     const auditModeEnabled = app.isAuditModeEnabled()
     this.setData({
       auditModeEnabled,
-      loggedIn: !auditModeEnabled && Boolean(wx.getStorageSync('token'))
+      loggedIn: !auditModeEnabled && Boolean(wx.getStorageSync('token')),
+      ui: app.getUi()
     })
   },
   async loadPost() {
@@ -73,7 +75,7 @@ Page({
         currentImageCanShowOriginal: Boolean(originalImages[0] && displayImages[0] !== originalImages[0])
       })
     } catch (error) {
-      wx.showToast({ title: error.message || '笔记加载失败', icon: 'none' })
+      wx.showToast({ title: error.message || getApp().getUiText('messages', 'detailLoadFailed'), icon: 'none' })
     } finally {
       this.setData({ loading: false })
     }
@@ -122,11 +124,12 @@ Page({
     })
   },
   async showOriginalImage() {
+    const app = getApp()
     const index = this.data.currentImageIndex
     const originalUrl = this.data.post?.images?.[index]
     if (!originalUrl || !this.data.currentImageCanShowOriginal) return
 
-    wx.showLoading({ title: '加载原图', mask: false })
+    wx.showLoading({ title: app.getUiText('messages', 'detailOriginalLoading'), mask: false })
     try {
       await new Promise((resolve, reject) => {
         wx.getImageInfo({ src: originalUrl, success: resolve, fail: reject })
@@ -144,7 +147,7 @@ Page({
       })
     } catch (error) {
       console.warn('加载原图失败:', error)
-      wx.showToast({ title: '原图加载失败', icon: 'none' })
+      wx.showToast({ title: app.getUiText('messages', 'detailOriginalFailed'), icon: 'none' })
     } finally {
       wx.hideLoading()
     }
@@ -180,7 +183,8 @@ Page({
     wx.navigateTo({ url: '/pages/login/index' })
   },
   async submitComment() {
-    if (!(await getApp().ensureNormalMode())) return
+    const app = getApp()
+    if (!(await app.ensureNormalMode())) return
     const content = this.data.commentText.trim()
     if (!content) return
     if (!this.data.loggedIn) return this.goLogin()
@@ -188,9 +192,9 @@ Page({
       await api.msg(this.data.id, content)
       this.setData({ commentText: '' })
       await this.loadComments()
-      wx.showToast({ title: '评论成功', icon: 'success' })
+      wx.showToast({ title: app.getUiText('messages', 'commentSuccess'), icon: 'success' })
     } catch (error) {
-      wx.showToast({ title: error.message || '评论失败', icon: 'none' })
+      wx.showToast({ title: error.message || app.getUiText('messages', 'commentFailed'), icon: 'none' })
     }
   }
 })
