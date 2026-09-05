@@ -15,16 +15,18 @@ Page({
     pageAllowed: false
   },
   async onLoad() {
-    const allowed = await getApp().ensureNormalMode({ toast: false })
+    const app = getApp()
+    const allowed = await app.ensureNormalMode({ toast: false })
     if (allowed) {
-      wx.setNavigationBarTitle({ title: '登录' })
+      app.setPageTitle('login')
       this.setData({ pageAllowed: true })
     }
   },
   async onShow() {
-    const allowed = await getApp().ensureNormalMode({ toast: false })
+    const app = getApp()
+    const allowed = await app.ensureNormalMode({ toast: false })
     if (allowed && !this.data.pageAllowed) {
-      wx.setNavigationBarTitle({ title: '登录' })
+      app.setPageTitle('login')
       this.setData({ pageAllowed: true })
     }
   },
