@@ -8,12 +8,14 @@ Page({
     avatarUrl: DEFAULT_AVATAR,
     auditModeEnabled: true,
     loading: true,
-    pageAllowed: false
+    pageAllowed: false,
+    ui: { labels: {} }
   },
   async onShow() {
     const app = getApp()
     if (!(await app.ensureNormalMode({ toast: false }))) return
     app.setPageTitle('profile')
+    this.setData({ ui: app.getUi() })
     if (!this.data.pageAllowed) this.setData({ pageAllowed: true, auditModeEnabled: false })
 
     const token = wx.getStorageSync('token')
