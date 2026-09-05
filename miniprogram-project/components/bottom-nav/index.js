@@ -1,7 +1,8 @@
 Component({
   properties: {
     current: { type: String, value: 'home' },
-    auditModeEnabled: { type: Boolean, value: true }
+    auditModeEnabled: { type: Boolean, value: true },
+    labels: { type: Object, value: {} }
   },
   methods: {
     goHome() {
