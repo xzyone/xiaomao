@@ -3,7 +3,13 @@ const router = express.Router();
 const { HTTP_STATUS, RESPONSE_CODES } = require('../constants');
 const { adminAuth } = require('../utils/uploadHelper');
 const { REVIEW_MODES, getReviewMode, setReviewMode } = require('../utils/reviewPolicy');
-const { getMiniappReadonlyMode, setMiniappReadonlyMode } = require('../utils/miniappPolicy');
+const {
+  MINIAPP_UI_TITLE_KEYS,
+  getMiniappReadonlyMode,
+  setMiniappReadonlyMode,
+  getMiniappUiConfig,
+  setMiniappUiConfig
+} = require('../utils/miniappPolicy');
 
 const MODE_LABELS = {
   [REVIEW_MODES.NONE]: '全站免审',
@@ -17,11 +23,31 @@ function parseReadonlyMode(value) {
   return null;
 }
 
+function parseMiniappUiConfig(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (!value.titles || typeof value.titles !== 'object' || Array.isArray(value.titles)) return null;
+
+  const titles = {};
+  let count = 0;
+
+  for (const key of Object.keys(MINIAPP_UI_TITLE_KEYS)) {
+    if (!Object.prototype.hasOwnProperty.call(value.titles, key)) continue;
+
+    const title = typeof value.titles[key] === 'string' ? value.titles[key].trim() : '';
+    if (!title || Array.from(title).length > 32) return null;
+    titles[key] = title;
+    count += 1;
+  }
+
+  return count > 0 ? { titles } : null;
+}
+
 router.get('/', adminAuth, async (req, res) => {
   try {
-    const [postReviewMode, miniappReadonlyMode] = await Promise.all([
+    const [postReviewMode, miniappReadonlyMode, miniappUi] = await Promise.all([
       getReviewMode(),
-      getMiniappReadonlyMode()
+      getMiniappReadonlyMode(),
+      getMiniappUiConfig()
     ]);
 
     res.json({
@@ -29,7 +55,8 @@ router.get('/', adminAuth, async (req, res) => {
       message: 'success',
       data: {
         post_review_mode: postReviewMode,
-        miniapp_readonly_mode: miniappReadonlyMode
+        miniapp_readonly_mode: miniappReadonlyMode,
+        miniapp_ui: miniappUi
       }
     });
   } catch (error) {
@@ -45,8 +72,9 @@ router.put('/', adminAuth, async (req, res) => {
   try {
     const hasPostReviewMode = Object.prototype.hasOwnProperty.call(req.body, 'post_review_mode');
     const hasMiniappReadonlyMode = Object.prototype.hasOwnProperty.call(req.body, 'miniapp_readonly_mode');
+    const hasMiniappUi = Object.prototype.hasOwnProperty.call(req.body, 'miniapp_ui');
 
-    if (!hasPostReviewMode && !hasMiniappReadonlyMode) {
+    if (!hasPostReviewMode && !hasMiniappReadonlyMode && !hasMiniappUi) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         code: RESPONSE_CODES.VALIDATION_ERROR,
         message: '没有需要更新的系统设置'
@@ -81,9 +109,23 @@ router.put('/', adminAuth, async (req, res) => {
       messages.push(miniappReadonlyMode ? '小程序审核模式已开启' : '小程序审核模式已关闭');
     }
 
-    const [currentPostReviewMode, currentMiniappReadonlyMode] = await Promise.all([
+    if (hasMiniappUi) {
+      const miniappUi = parseMiniappUiConfig(req.body.miniapp_ui);
+      if (!miniappUi) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          code: RESPONSE_CODES.VALIDATION_ERROR,
+          message: '无效的小程序界面配置'
+        });
+      }
+
+      await setMiniappUiConfig(miniappUi);
+      messages.push('小程序界面文案已更新');
+    }
+
+    const [currentPostReviewMode, currentMiniappReadonlyMode, currentMiniappUi] = await Promise.all([
       getReviewMode(),
-      getMiniappReadonlyMode()
+      getMiniappReadonlyMode(),
+      getMiniappUiConfig()
     ]);
 
     res.json({
@@ -91,7 +133,8 @@ router.put('/', adminAuth, async (req, res) => {
       message: messages.join('；'),
       data: {
         post_review_mode: currentPostReviewMode,
-        miniapp_readonly_mode: currentMiniappReadonlyMode
+        miniapp_readonly_mode: currentMiniappReadonlyMode,
+        miniapp_ui: currentMiniappUi
       }
     });
   } catch (error) {
