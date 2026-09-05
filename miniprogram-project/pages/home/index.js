@@ -5,7 +5,8 @@ const PAGE_SIZE = 12
 Page({
   data: {
     posts: [], leftPosts: [], rightPosts: [], categories: [], currentCategory: 'recommend',
-    page: 1, hasMore: true, loading: false, auditModeEnabled: true
+    page: 1, hasMore: true, loading: false, auditModeEnabled: true,
+    ui: { labels: {} }
   },
   async onLoad() {
     if (wx.showShareMenu) {
@@ -26,7 +27,7 @@ Page({
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('home')
-    this.setData({ auditModeEnabled: app.isAuditModeEnabled() })
+    this.setData({ auditModeEnabled: app.isAuditModeEnabled(), ui: app.getUi() })
   },
   async loadCategories() {
     try {
@@ -46,8 +47,9 @@ Page({
       const posts = reset ? incoming : this.data.posts.concat(incoming)
       this.setData({ posts, page: nextPage, hasMore: Boolean(result && result.pagination && nextPage < result.pagination.pages) })
       this.distributePosts(posts)
-    } catch (error) { wx.showToast({ title: error.message || '加载失败', icon: 'none' }) }
-    finally { this.setData({ loading: false }) }
+    } catch (error) {
+      wx.showToast({ title: error.message || getApp().getUiText('messages', 'loadFailed'), icon: 'none' })
+    } finally { this.setData({ loading: false }) }
   },
   distributePosts(posts) {
     const leftPosts = [], rightPosts = []
