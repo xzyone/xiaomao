@@ -5,7 +5,7 @@
         <image class="detail-image" src="{{item}}" mode="aspectFit" lazy-load data-index="{{index}}" data-url="{{item}}" bindload="onDetailImageLoad" bindtap="previewImage" />
       </swiper-item>
     </swiper>
-    <button wx:if="{{currentImageCanShowOriginal}}" class="original-image-button" catchtap="showOriginalImage">原图</button>
+    <button wx:if="{{currentImageCanShowOriginal}}" class="original-image-button" catchtap="showOriginalImage">{{ui.labels.detailOriginal}}</button>
   </view>
   <video wx:if="{{post.type == 2 && post.video_url && post.poster_url}}" class="detail-video" src="{{post.video_url}}" poster="{{post.poster_url}}" controls object-fit="contain" show-mute-btn="{{true}}" show-fullscreen-btn="{{true}}" show-play-btn="{{true}}" show-center-play-btn="{{true}}" enable-progress-gesture="{{true}}" vslide-gesture="{{true}}" vslide-gesture-in-fullscreen="{{true}}" />
   <video wx:elif="{{post.type == 2 && post.video_url}}" class="detail-video" src="{{post.video_url}}" controls object-fit="contain" show-mute-btn="{{true}}" show-fullscreen-btn="{{true}}" show-play-btn="{{true}}" show-center-play-btn="{{true}}" enable-progress-gesture="{{true}}" vslide-gesture="{{true}}" vslide-gesture-in-fullscreen="{{true}}" />
@@ -13,7 +13,7 @@
   <view class="post-author-header">
     <image class="avatar" src="{{post.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load binderror="onPostAvatarError" />
     <view class="author-copy">
-      <text class="nickname">{{post.nickname || '匿名用户'}}</text>
+      <text class="nickname">{{post.nickname || ui.labels.anonymousUser}}</text>
     </view>
   </view>
 
@@ -21,24 +21,24 @@
     <text class="title">{{post.title}}</text>
     <text class="content">{{contentText}}</text>
     <view class="tag-row" wx:if="{{post.tags && post.tags.length}}"><text wx:for="{{post.tags}}" wx:key="id" class="tag">#{{item.name}}</text></view>
-    <text class="date">{{displayDate}} · 浏览 {{post.view_count || 0}}{{post.location ? ' · ' + post.location : ''}}</text>
+    <text class="date">{{displayDate}} · {{ui.labels.detailViews}} {{post.view_count || 0}}{{post.location ? ' · ' + post.location : ''}}</text>
   </view>
 
   <view wx:if="{{!auditModeEnabled}}" class="comments-section">
-    <text class="section-title">评论 {{post.comment_count || 0}}</text>
+    <text class="section-title">{{ui.labels.detailComments}} {{post.comment_count || 0}}</text>
     <view wx:for="{{comments}}" wx:key="id" class="comment-item">
       <image class="comment-avatar" src="{{item.user_avatar || '/assets/avatar.png'}}" mode="aspectFill" lazy-load data-index="{{index}}" binderror="onCommentAvatarError" />
       <view class="comment-body">
-        <text class="comment-user">{{item.nickname || '匿名用户'}}</text>
+        <text class="comment-user">{{item.nickname || ui.labels.anonymousUser}}</text>
         <text class="comment-content">{{item.content}}</text>
-        <text class="comment-meta">{{item.user_location ? 'IP属地 · ' + item.user_location : ''}}</text>
+        <text class="comment-meta">{{item.user_location ? ui.labels.detailIpPrefix + item.user_location : ''}}</text>
       </view>
     </view>
-    <view wx:if="{{!comments.length}}" class="no-comments">还没有评论</view>
+    <view wx:if="{{!comments.length}}" class="no-comments">{{ui.labels.detailEmptyComments}}</view>
   </view>
   <view wx:if="{{!auditModeEnabled}}" class="comment-bar safe-bottom">
-    <input class="comment-input" value="{{commentText}}" placeholder="{{loggedIn ? '说点什么...' : '登录后参与评论'}}" bindinput="onCommentInput" bindtap="handleCommentInputTap" />
-    <button class="send-button" bindtap="submitComment">发送</button>
+    <input class="comment-input" value="{{commentText}}" placeholder="{{loggedIn ? ui.placeholders.detailComment : ui.placeholders.detailCommentLogin}}" bindinput="onCommentInput" bindtap="handleCommentInputTap" />
+    <button class="send-button" bindtap="submitComment">{{ui.labels.detailSend}}</button>
   </view>
 </view>
-<view wx:elif="{{loading}}" class="loading-page">加载中...</view>
+<view wx:elif="{{loading}}" class="loading-page">{{ui.labels.loading}}</view>
