@@ -59,6 +59,35 @@
       </div>
     </section>
 
+    <section class="settings-card">
+      <div class="settings-card-header">
+        <div>
+          <h2>小程序界面文案</h2>
+          <p>统一管理小程序原生导航栏标题，保存后由小程序远程读取。</p>
+        </div>
+        <span v-if="savingMiniappUi" class="settings-status">保存中...</span>
+      </div>
+
+      <div class="miniapp-title-grid">
+        <label v-for="field in titleFields" :key="field.key" class="miniapp-title-field">
+          <span>{{ field.label }}</span>
+          <input v-model="miniappTitles[field.key]" type="text" maxlength="32"
+            :disabled="loading || savingMiniappUi" />
+        </label>
+      </div>
+
+      <div class="settings-actions">
+        <button type="button" class="settings-save-button" :disabled="loading || savingMiniappUi"
+          @click="saveMiniappUi">
+          {{ savingMiniappUi ? '保存中...' : '保存界面文案' }}
+        </button>
+      </div>
+
+      <div class="settings-note">
+        当前统一管理首页、详情、编辑、登录和个人页标题。小程序端仅保留通用标题作为网络异常时的兜底，后续可继续扩展其他 UI 文案或多语言配置。
+      </div>
+    </section>
+
     <MessageToast v-if="showToast" :message="toastMessage" :type="toastType" @close="showToast = false" />
   </div>
 </template>
@@ -86,11 +115,27 @@ const reviewModes = [
   }
 ]
 
+const titleFields = [
+  { key: 'home', label: '首页标题' },
+  { key: 'detail', label: '详情页标题' },
+  { key: 'editor', label: '编辑页标题' },
+  { key: 'login', label: '登录页标题' },
+  { key: 'profile', label: '个人页标题' }
+]
+
 const currentMode = ref('all')
 const miniappAuditMode = ref(false)
+const miniappTitles = ref({
+  home: '小毛毛',
+  detail: '笔记详情',
+  editor: '发布笔记',
+  login: '登录',
+  profile: '我的'
+})
 const loading = ref(true)
 const saving = ref(false)
 const savingMiniapp = ref(false)
+const savingMiniappUi = ref(false)
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref('success')
@@ -108,6 +153,12 @@ const showMessage = (message, type = 'success') => {
   showToast.value = true
 }
 
+const applyMiniappUi = (ui) => {
+  const titles = ui?.titles
+  if (!titles || typeof titles !== 'object') return
+  miniappTitles.value = { ...miniappTitles.value, ...titles }
+}
+
 const loadSettings = async () => {
   loading.value = true
   try {
@@ -118,6 +169,7 @@ const loadSettings = async () => {
     if (result.code === 200 && result.data?.post_review_mode) {
       currentMode.value = result.data.post_review_mode
       miniappAuditMode.value = Boolean(result.data.miniapp_readonly_mode)
+      applyMiniappUi(result.data.miniapp_ui)
     } else {
       showMessage(result.message || '读取系统设置失败', 'error')
     }
@@ -143,6 +195,7 @@ const changeReviewMode = async (mode) => {
     if (result.code === 200) {
       currentMode.value = result.data?.post_review_mode || mode
       miniappAuditMode.value = Boolean(result.data?.miniapp_readonly_mode)
+      applyMiniappUi(result.data?.miniapp_ui)
       showMessage(result.message || '设置已保存')
     } else {
       showMessage(result.message || '保存系统设置失败', 'error')
@@ -170,6 +223,7 @@ const toggleMiniappAuditMode = async () => {
     if (result.code === 200) {
       miniappAuditMode.value = Boolean(result.data?.miniapp_readonly_mode)
       if (result.data?.post_review_mode) currentMode.value = result.data.post_review_mode
+      applyMiniappUi(result.data?.miniapp_ui)
       showMessage(result.message || '设置已保存')
     } else {
       showMessage(result.message || '保存小程序设置失败', 'error')
@@ -179,6 +233,41 @@ const toggleMiniappAuditMode = async () => {
     showMessage('保存小程序设置失败', 'error')
   } finally {
     savingMiniapp.value = false
+  }
+}
+
+const saveMiniappUi = async () => {
+  if (savingMiniappUi.value || loading.value) return
+
+  const titles = {}
+  for (const field of titleFields) {
+    const value = String(miniappTitles.value[field.key] || '').trim()
+    if (!value) {
+      showMessage(`${field.label}不能为空`, 'error')
+      return
+    }
+    titles[field.key] = value
+  }
+
+  savingMiniappUi.value = true
+  try {
+    const response = await fetch(`${apiConfig.baseURL}/admin/system-settings`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ miniapp_ui: { titles } })
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      applyMiniappUi(result.data?.miniapp_ui)
+      showMessage(result.message || '界面文案已保存')
+    } else {
+      showMessage(result.message || '保存界面文案失败', 'error')
+    }
+  } catch (error) {
+    console.error('保存小程序界面文案失败:', error)
+    showMessage('保存界面文案失败', 'error')
+  } finally {
+    savingMiniappUi.value = false
   }
 }
 
@@ -255,7 +344,9 @@ onMounted(loadSettings)
 }
 
 .review-mode-button:disabled,
-.toggle-switch:disabled {
+.toggle-switch:disabled,
+.settings-save-button:disabled,
+.miniapp-title-field input:disabled {
   cursor: not-allowed;
   opacity: 0.65;
 }
@@ -368,6 +459,52 @@ onMounted(loadSettings)
   color: #fff;
 }
 
+.miniapp-title-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.miniapp-title-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-color-secondary);
+  font-size: 13px;
+}
+
+.miniapp-title-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color-primary);
+  border-radius: 8px;
+  background: var(--bg-color-secondary);
+  color: var(--text-color-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.miniapp-title-field input:focus {
+  border-color: var(--primary-color);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.settings-save-button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: var(--button-text-color);
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .settings-note {
   margin-top: 16px;
   padding-top: 14px;
@@ -378,7 +515,8 @@ onMounted(loadSettings)
 }
 
 @media (max-width: 760px) {
-  .review-mode-options {
+  .review-mode-options,
+  .miniapp-title-grid {
     grid-template-columns: 1fr;
   }
 
