@@ -25,9 +25,9 @@ Page({
   async onShow() {
     const app = getApp()
     const allowed = await app.ensureNormalMode({ toast: false })
-    if (allowed && !this.data.pageAllowed) {
+    if (allowed) {
       app.setPageTitle('login')
-      this.setData({ pageAllowed: true })
+      if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
     }
   },
   onUserIdInput(event) { this.setData({ userId: event.detail.value }) },
