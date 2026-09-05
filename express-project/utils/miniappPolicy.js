@@ -3,20 +3,103 @@ const { HTTP_STATUS, RESPONSE_CODES } = require('../constants');
 
 const MINIAPP_SETTING_KEY = 'miniapp_readonly_mode';
 const MINIAPP_CLIENT_HEADER = 'wechat-miniapp';
-const MINIAPP_UI_TITLE_KEYS = Object.freeze({
-  home: 'miniapp_title_home',
-  detail: 'miniapp_title_detail',
-  editor: 'miniapp_title_editor',
-  login: 'miniapp_title_login',
-  profile: 'miniapp_title_profile'
+
+const MINIAPP_UI_DEFAULTS = Object.freeze({
+  titles: Object.freeze({
+    home: '小毛毛',
+    detail: '笔记详情',
+    editor: '发布笔记',
+    login: '登录',
+    profile: '我的'
+  }),
+  labels: Object.freeze({
+    homeBrand: '小毛毛',
+    homeSubtitle: '毛毛的快乐狗生',
+    recommend: '推荐',
+    loading: '加载中...',
+    reachedEnd: '已经到底啦',
+    emptyContent: '还没有内容',
+    navHome: '首页',
+    navProfile: '我的',
+    postVideo: '视频',
+    anonymousUser: '匿名用户',
+    editorImageTab: '图文',
+    editorVideoTab: '视频',
+    editorPhoto: '照片',
+    editorChooseVideo: '选择视频',
+    editorCategory: '分类',
+    editorChooseCategory: '选择分类',
+    editorTags: '# 标签',
+    editorSubmit: '发布笔记',
+    loginBrand: '小毛毛',
+    loginSubtitle: '登录后和家人一起记录毛毛',
+    loginAccount: '毛毛号',
+    loginPassword: '密码',
+    loginSubmit: '登录',
+    loginHint: '注册和找回密码请前往网页端操作。',
+    profileAccountPrefix: '毛毛号：',
+    profileEmptyBio: '还没有个人简介',
+    profileFollowing: '关注',
+    profileFans: '粉丝',
+    profileLikes: '获赞',
+    profileLogout: '退出登录',
+    profileGuestTitle: '登录小毛毛',
+    profileGoLogin: '去登录',
+    detailOriginal: '原图',
+    detailViews: '浏览',
+    detailComments: '评论',
+    detailEmptyComments: '还没有评论',
+    detailSend: '发送',
+    detailIpPrefix: 'IP属地 · '
+  }),
+  placeholders: Object.freeze({
+    editorTitle: '填写标题会有更多赞哦',
+    editorContent: '分享毛毛的这一刻...',
+    editorTags: '多个标签用空格或逗号分隔',
+    loginAccount: '请输入毛毛号',
+    loginPassword: '请输入密码',
+    detailComment: '说点什么...',
+    detailCommentLogin: '登录后参与评论'
+  }),
+  messages: Object.freeze({
+    browseOnly: '当前仅支持浏览',
+    loginRequired: '请先登录',
+    sessionUnavailable: '暂时无法验证登录状态，请检查网络',
+    loginCredentialsRequired: '请输入毛毛号和密码',
+    loginSuccess: '登录成功',
+    loginFailed: '登录失败',
+    loadFailed: '加载失败',
+    editorTitleContentRequired: '标题和正文不能为空',
+    editorImageRequired: '请选择至少一张图片',
+    editorVideoRequired: '请选择视频',
+    editorSubmitting: '正在发布',
+    editorReviewSubmitted: '已提交审核',
+    editorSuccess: '发布成功',
+    editorFailed: '发布失败',
+    editorVideoFailed: '视频上传失败',
+    detailLoadFailed: '笔记加载失败',
+    detailOriginalLoading: '加载原图',
+    detailOriginalFailed: '原图加载失败',
+    commentSuccess: '评论成功',
+    commentFailed: '评论失败'
+  })
 });
-const MINIAPP_UI_TITLE_DEFAULTS = Object.freeze({
-  home: '小毛毛',
-  detail: '笔记详情',
-  editor: '发布笔记',
-  login: '登录',
-  profile: '我的'
-});
+
+const MINIAPP_UI_SETTING_KEYS = Object.freeze(
+  Object.fromEntries(
+    Object.entries(MINIAPP_UI_DEFAULTS).map(([group, values]) => [
+      group,
+      Object.freeze(
+        Object.fromEntries(
+          Object.keys(values).map(name => [name, `miniapp_ui_${group}_${name}`])
+        )
+      )
+    ])
+  )
+);
+
+const MINIAPP_UI_TITLE_KEYS = MINIAPP_UI_SETTING_KEYS.titles;
+const MINIAPP_UI_TITLE_DEFAULTS = MINIAPP_UI_DEFAULTS.titles;
 let ensureSettingsTablePromise = null;
 
 async function ensureSystemSettingsTable() {
@@ -31,13 +114,12 @@ async function ensureSystemSettingsTable() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统设置'
       `);
 
-      const defaults = [
-        [MINIAPP_SETTING_KEY, '0'],
-        ...Object.entries(MINIAPP_UI_TITLE_KEYS).map(([name, settingKey]) => [
-          settingKey,
-          MINIAPP_UI_TITLE_DEFAULTS[name]
-        ])
-      ];
+      const defaults = [[MINIAPP_SETTING_KEY, '0']];
+      for (const [group, keyMap] of Object.entries(MINIAPP_UI_SETTING_KEYS)) {
+        for (const [name, settingKey] of Object.entries(keyMap)) {
+          defaults.push([settingKey, MINIAPP_UI_DEFAULTS[group][name]]);
+        }
+      }
 
       for (const [settingKey, settingValue] of defaults) {
         await pool.execute(
@@ -83,45 +165,53 @@ async function setMiniappReadonlyMode(enabled) {
 async function getMiniappUiConfig() {
   await ensureSystemSettingsTable();
 
-  const settingKeys = Object.values(MINIAPP_UI_TITLE_KEYS);
+  const settingKeys = Object.values(MINIAPP_UI_SETTING_KEYS).flatMap(group => Object.values(group));
   const placeholders = settingKeys.map(() => '?').join(', ');
   const [rows] = await pool.execute(
     `SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN (${placeholders})`,
     settingKeys
   );
 
-  const titles = { ...MINIAPP_UI_TITLE_DEFAULTS };
-  const keyToName = Object.fromEntries(
-    Object.entries(MINIAPP_UI_TITLE_KEYS).map(([name, settingKey]) => [settingKey, name])
+  const ui = Object.fromEntries(
+    Object.entries(MINIAPP_UI_DEFAULTS).map(([group, values]) => [group, { ...values }])
   );
+  const settingLookup = {};
 
-  for (const row of rows) {
-    const name = keyToName[row.setting_key];
-    const value = String(row.setting_value || '').trim();
-    if (name && value) titles[name] = value;
+  for (const [group, keyMap] of Object.entries(MINIAPP_UI_SETTING_KEYS)) {
+    for (const [name, settingKey] of Object.entries(keyMap)) {
+      settingLookup[settingKey] = { group, name };
+    }
   }
 
-  return { titles };
+  for (const row of rows) {
+    const target = settingLookup[row.setting_key];
+    const value = String(row.setting_value || '').trim();
+    if (target && value) ui[target.group][target.name] = value;
+  }
+
+  return ui;
 }
 
 async function setMiniappUiConfig(config = {}) {
   await ensureSystemSettingsTable();
 
-  const titles = config && config.titles && typeof config.titles === 'object'
-    ? config.titles
-    : {};
+  for (const [group, keyMap] of Object.entries(MINIAPP_UI_SETTING_KEYS)) {
+    const values = config && config[group] && typeof config[group] === 'object'
+      ? config[group]
+      : {};
 
-  for (const [name, settingKey] of Object.entries(MINIAPP_UI_TITLE_KEYS)) {
-    if (!Object.prototype.hasOwnProperty.call(titles, name)) continue;
-    const value = String(titles[name] || '').trim();
-    if (!value) continue;
+    for (const [name, settingKey] of Object.entries(keyMap)) {
+      if (!Object.prototype.hasOwnProperty.call(values, name)) continue;
+      const value = String(values[name] || '').trim();
+      if (!value) continue;
 
-    await pool.execute(
-      `INSERT INTO system_settings (setting_key, setting_value)
-       VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-      [settingKey, value]
-    );
+      await pool.execute(
+        `INSERT INTO system_settings (setting_key, setting_value)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [settingKey, value]
+      );
+    }
   }
 
   return getMiniappUiConfig();
@@ -203,6 +293,8 @@ async function miniappReadonlyGuard(req, res, next) {
 
 module.exports = {
   MINIAPP_SETTING_KEY,
+  MINIAPP_UI_DEFAULTS,
+  MINIAPP_UI_SETTING_KEYS,
   MINIAPP_UI_TITLE_KEYS,
   MINIAPP_UI_TITLE_DEFAULTS,
   getMiniappReadonlyMode,
