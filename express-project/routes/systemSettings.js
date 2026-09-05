@@ -4,7 +4,7 @@ const { HTTP_STATUS, RESPONSE_CODES } = require('../constants');
 const { adminAuth } = require('../utils/uploadHelper');
 const { REVIEW_MODES, getReviewMode, setReviewMode } = require('../utils/reviewPolicy');
 const {
-  MINIAPP_UI_TITLE_KEYS,
+  MINIAPP_UI_DEFAULTS,
   getMiniappReadonlyMode,
   setMiniappReadonlyMode,
   getMiniappUiConfig,
@@ -25,21 +25,30 @@ function parseReadonlyMode(value) {
 
 function parseMiniappUiConfig(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  if (!value.titles || typeof value.titles !== 'object' || Array.isArray(value.titles)) return null;
 
-  const titles = {};
+  const parsed = {};
   let count = 0;
 
-  for (const key of Object.keys(MINIAPP_UI_TITLE_KEYS)) {
-    if (!Object.prototype.hasOwnProperty.call(value.titles, key)) continue;
+  for (const [group, defaults] of Object.entries(MINIAPP_UI_DEFAULTS)) {
+    const source = value[group];
+    if (source === undefined) continue;
+    if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
 
-    const title = typeof value.titles[key] === 'string' ? value.titles[key].trim() : '';
-    if (!title || Array.from(title).length > 32) return null;
-    titles[key] = title;
-    count += 1;
+    const values = {};
+    const maxLength = group === 'titles' ? 32 : 100;
+
+    for (const key of Object.keys(defaults)) {
+      if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+      const text = typeof source[key] === 'string' ? source[key].trim() : '';
+      if (!text || Array.from(text).length > maxLength) return null;
+      values[key] = text;
+      count += 1;
+    }
+
+    if (Object.keys(values).length) parsed[group] = values;
   }
 
-  return count > 0 ? { titles } : null;
+  return count > 0 ? parsed : null;
 }
 
 router.get('/', adminAuth, async (req, res) => {
