@@ -106,7 +106,7 @@ build_frontend() {
     -e https_proxy="$PROXY_URL" \
     -v "$FRONTEND_DIR:/app" \
     -w /app \
-    node:18-alpine \
+    node:22-alpine \
     sh -c 'npm ci --no-audit --no-fund && npm run build'
 
   echo "Frontend ready: $FRONTEND_DIR/dist"
