@@ -266,49 +266,70 @@ const postsCrudConfig = {
       }
     }
 
-    // 处理视频更新 - 只要有任何视频相关字段就触发处理
-    const hasVideoUpdate = data.video_url !== undefined || data.cover_url !== undefined || data.video !== undefined
+    // 处理视频更新：只有媒体 URL 真正变化时才修改记录和清理旧文件。
+    // 后台修改状态、标题、分类等操作即使携带现有 video_url，也绝不能删除媒体文件。
+    const hasVideoUpdate = Object.prototype.hasOwnProperty.call(data, 'video_url') ||
+      Object.prototype.hasOwnProperty.call(data, 'cover_url') ||
+      Object.prototype.hasOwnProperty.call(data, 'video')
 
     if (hasVideoUpdate) {
-      // 获取原有视频记录用于清理文件
-      const [oldVideoRows] = await pool.execute('SELECT video_url, cover_url FROM post_videos WHERE post_id = ?', [String(postId)])
+      const [oldVideoRows] = await pool.execute(
+        'SELECT video_url, cover_url FROM post_videos WHERE post_id = ? LIMIT 1',
+        [String(postId)]
+      )
+      const oldVideo = oldVideoRows[0] || null
+      const oldVideoUrl = oldVideo?.video_url || null
+      const oldCoverUrl = oldVideo?.cover_url || null
+      const normalizeMediaUrl = (value) =>
+        typeof value === 'string' && value.trim() !== '' ? value.trim() : null
 
-      // 删除原有视频记录
-      await pool.execute('DELETE FROM post_videos WHERE post_id = ?', [String(postId)])
+      let videoUrl = oldVideoUrl
+      let coverUrl = oldCoverUrl
 
-      // 清理废弃的视频文件
-      if (oldVideoRows.length > 0) {
-        const { batchCleanupFiles } = require('../utils/fileCleanup')
-        const oldVideoUrls = oldVideoRows.map(row => row.video_url).filter(url => url)
-        const oldCoverUrls = oldVideoRows.map(row => row.cover_url).filter(url => url)
-
-        // 异步清理文件，不阻塞响应
-        batchCleanupFiles(oldVideoUrls, oldCoverUrls).then(result => {
-          // 文件清理完成
-        }).catch(error => {
-          console.error('后台管理系统清理废弃视频文件失败:', error)
-        })
+      if (data.video && typeof data.video === 'object' && data.video.url !== undefined) {
+        videoUrl = normalizeMediaUrl(data.video.url)
+        if (data.video.coverUrl !== undefined) {
+          coverUrl = normalizeMediaUrl(data.video.coverUrl)
+        }
+      } else if (Object.prototype.hasOwnProperty.call(data, 'video_url')) {
+        videoUrl = normalizeMediaUrl(data.video_url)
       }
 
-      // 插入新视频记录 - 优先使用video对象，然后是分离字段
-      let videoUrl = null
-      let coverUrl = null
-
-      if (data.video && data.video.url) {
-        // FormModal传递的video对象格式
-        videoUrl = data.video.url
-        coverUrl = data.video.coverUrl || ''
-      } else if (data.video_url && data.video_url.trim() !== '') {
-        // 分离字段格式
-        videoUrl = data.video_url
-        coverUrl = data.cover_url || ''
+      if (Object.prototype.hasOwnProperty.call(data, 'cover_url')) {
+        coverUrl = normalizeMediaUrl(data.cover_url)
       }
 
-      if (videoUrl) {
-        await pool.execute(
-          'INSERT INTO post_videos (post_id, video_url, cover_url) VALUES (?, ?, ?)',
-          [postId, videoUrl, coverUrl]
-        )
+      if (!videoUrl) {
+        coverUrl = null
+      }
+
+      const videoChanged = videoUrl !== oldVideoUrl
+      const coverChanged = coverUrl !== oldCoverUrl
+
+      if (videoChanged || coverChanged) {
+        if (oldVideo && videoUrl) {
+          await pool.execute(
+            'UPDATE post_videos SET video_url = ?, cover_url = ? WHERE post_id = ?',
+            [videoUrl, coverUrl, String(postId)]
+          )
+        } else if (oldVideo && !videoUrl) {
+          await pool.execute('DELETE FROM post_videos WHERE post_id = ?', [String(postId)])
+        } else if (!oldVideo && videoUrl) {
+          await pool.execute(
+            'INSERT INTO post_videos (post_id, video_url, cover_url) VALUES (?, ?, ?)',
+            [String(postId), videoUrl, coverUrl]
+          )
+        }
+
+        const obsoleteVideoUrls = videoChanged && oldVideoUrl && oldVideoUrl !== videoUrl ? [oldVideoUrl] : []
+        const obsoleteCoverUrls = coverChanged && oldCoverUrl && oldCoverUrl !== coverUrl ? [oldCoverUrl] : []
+
+        if (obsoleteVideoUrls.length > 0 || obsoleteCoverUrls.length > 0) {
+          const { batchCleanupFiles } = require('../utils/fileCleanup')
+          batchCleanupFiles(obsoleteVideoUrls, obsoleteCoverUrls).catch(error => {
+            console.error('后台管理系统清理废弃媒体文件失败:', error)
+          })
+        }
       }
     }
 
