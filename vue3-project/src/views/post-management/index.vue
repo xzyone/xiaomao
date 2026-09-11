@@ -9,6 +9,10 @@
         <h1 class="page-title">笔记管理</h1>
       </div>
       <div class="header-right">
+        <button class="recycle-bin-btn" @click="goToRecycleBin">
+          <SvgIcon name="delete" width="15" height="15" />
+          回收站
+        </button>
         <span class="post-count">共 {{ totalPosts }} 篇笔记</span>
       </div>
     </div>
@@ -78,7 +82,7 @@
 
 
     <!-- 删除确认弹窗 -->
-    <ConfirmModal :visible="showDeleteModal" title="删除笔记" :message="`确定要删除笔记《${selectedPost?.title}》吗？此操作不可撤销。`"
+    <ConfirmModal :visible="showDeleteModal" title="删除笔记" :message="`确定要删除笔记《${selectedPost?.title}》吗？删除后将进入回收站并保留30天，在此期间可以恢复。`"
       type="warning" confirm-text="删除" cancel-text="取消" @confirm="handleDelete" @cancel="showDeleteModal = false"
       @update:visible="showDeleteModal = $event" />
 
@@ -163,6 +167,10 @@ const goToPublish = () => {
   router.push('/publish')
 }
 
+const goToRecycleBin = () => {
+  router.push('/recycle-bin')
+}
+
 // 加载笔记列表
 const loadPosts = async () => {
   try {
@@ -239,7 +247,7 @@ const handleDelete = async () => {
   try {
     const response = await deletePost(selectedPost.value.id)
     if (response.success) {
-      showMessage('删除成功', 'success')
+      showMessage('已移入回收站', 'success')
       showDeleteModal.value = false
       loadPosts() // 重新加载列表
     } else {
@@ -364,6 +372,23 @@ onMounted(() => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.recycle-bin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color-primary);
+  border-radius: 6px;
+  background: var(--bg-color-primary);
+  color: var(--text-color-primary);
+  cursor: pointer;
+}
+
+.recycle-bin-btn:hover {
+  background: var(--bg-color-secondary);
 }
 
 .back-btn {

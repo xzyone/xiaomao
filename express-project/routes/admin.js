@@ -12,6 +12,7 @@ const {
 } = require('../utils/validationHelpers')
 const { extractMentionedUsers, hasMentions } = require('../utils/mentionParser')
 const NotificationHelper = require('../utils/notificationHelper')
+const { softDeletePost, RECYCLE_RETENTION_DAYS } = require('../utils/postRecycleBin')
 
 // 创建笔记
 // Posts CRUD 配置
@@ -506,8 +507,8 @@ const postsCrudConfig = {
       const limit = parseInt(req.query.limit) || 20
       const offset = (page - 1) * limit
 
-      // 搜索条件
-      let whereClause = ''
+      // 搜索条件：普通笔记管理不展示回收站内容
+      let whereClause = 'WHERE p.status <> 4'
       const params = []
 
       if (req.query.title) {
@@ -630,6 +631,41 @@ const postsCrudConfig = {
     }
   }
 }
+
+const adminSoftDeletePost = async (req, res) => {
+  try {
+    const moved = await softDeletePost(req.params.id);
+    if (!moved) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ code: RESPONSE_CODES.NOT_FOUND, message: '笔记不存在或已在回收站' });
+    }
+    res.json({ code: RESPONSE_CODES.SUCCESS, success: true, message: `已移入回收站，${RECYCLE_RETENTION_DAYS}天后自动删除` });
+  } catch (error) {
+    console.error('管理员移入回收站失败:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ code: RESPONSE_CODES.ERROR, message: '删除笔记失败' });
+  }
+};
+
+const adminSoftDeletePosts = async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    if (ids.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ code: RESPONSE_CODES.VALIDATION_ERROR, message: '请选择要删除的笔记' });
+    }
+    let movedCount = 0;
+    for (const id of ids) {
+      if (await softDeletePost(id)) movedCount += 1;
+    }
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      success: true,
+      message: `已将${movedCount}篇笔记移入回收站`,
+      data: { deletedCount: movedCount }
+    });
+  } catch (error) {
+    console.error('管理员批量移入回收站失败:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ code: RESPONSE_CODES.ERROR, message: '批量删除笔记失败' });
+  }
+};
 
 const postsHandlers = createCrudHandlers(postsCrudConfig)
 
@@ -878,13 +914,13 @@ router.put('/posts-audit/:id/reject', adminAuth, async (req, res) => {
 })
 
 router.post('/posts-audit', adminAuth, postsHandlers.create)
-router.delete('/posts-audit', adminAuth, postsHandlers.deleteMany)
+router.delete('/posts-audit', adminAuth, adminSoftDeletePosts)
 
 // 注册 Posts CRUD 路由
 router.post('/posts', adminAuth, postsHandlers.create)
 router.put('/posts/:id', adminAuth, postsHandlers.update)
-router.delete('/posts/:id', adminAuth, postsHandlers.deleteOne)
-router.delete('/posts', adminAuth, postsHandlers.deleteMany)
+router.delete('/posts/:id', adminAuth, adminSoftDeletePost)
+router.delete('/posts', adminAuth, adminSoftDeletePosts)
 router.get('/posts/:id', adminAuth, async (req, res) => {
   try {
     const result = await postsCrudConfig.customQueries.getOne(req)

@@ -16,6 +16,7 @@ const config = require('./config/config');
 const { HTTP_STATUS, RESPONSE_CODES } = require('./constants');
 // 导入自动解封功能
 const { startAutoUnbanService } = require('./utils/autoUnban');
+const { startRecycleBinCleanupService } = require('./utils/postRecycleBin');
 const { miniappReadonlyGuard } = require('./utils/miniappPolicy');
 const { protectPostListVisibility } = require('./middleware/postVisibility');
 
@@ -124,6 +125,9 @@ app.use('*', (req, res) => {
 
 // 启动自动解封服务
 startAutoUnbanService();
+
+// 启动笔记回收站过期清理服务
+startRecycleBinCleanupService();
 
 // 启动服务器
 const PORT = config.server.port;

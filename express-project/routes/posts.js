@@ -9,6 +9,7 @@ const { batchCleanupFiles } = require('../utils/fileCleanup');
 const { sanitizeContent } = require('../utils/contentSecurity');
 const { getContentLocation } = require('../utils/contentLocation');
 const { resolvePostStatus, queuePostAudit } = require('../utils/reviewPolicy');
+const { RECYCLE_STATUS, RECYCLE_RETENTION_DAYS, softDeletePost, restorePost, hardDeletePost } = require('../utils/postRecycleBin');
 
 // 获取笔记列表
 router.get('/', optionalAuth, async (req, res) => {
@@ -387,6 +388,111 @@ router.get('/following', authenticateToken, async (req, res) => {
   }
 });
 
+// 获取当前用户的回收站
+router.get('/recycle-bin', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    const [rows] = await pool.execute(
+      `SELECT p.*, c.name AS category,
+    DATE_ADD(p.deleted_at, INTERVAL ${RECYCLE_RETENTION_DAYS} DAY) AS expires_at,
+    GREATEST(0, CEIL(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), DATE_ADD(p.deleted_at, INTERVAL ${RECYCLE_RETENTION_DAYS} DAY)) / 86400)) AS remaining_days
+       FROM posts p
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.user_id = ? AND p.status = ? AND p.deleted_at IS NOT NULL
+       ORDER BY p.deleted_at DESC
+       LIMIT ? OFFSET ?`,
+      [String(userId), String(RECYCLE_STATUS), String(limit), String(offset)]
+    );
+
+    if (rows.length > 0) {
+      const postIds = rows.map(row => row.id);
+      const [images] = await pool.query(
+        'SELECT post_id, image_url FROM post_images WHERE post_id IN (?)',
+        [postIds]
+      );
+      const [videos] = await pool.query(
+        'SELECT post_id, video_url, cover_url FROM post_videos WHERE post_id IN (?)',
+        [postIds]
+      );
+      const imageMap = {};
+      const videoMap = {};
+      images.forEach(image => {
+        if (!imageMap[image.post_id]) imageMap[image.post_id] = [];
+        imageMap[image.post_id].push(image.image_url);
+      });
+      videos.forEach(video => { videoMap[video.post_id] = video; });
+
+      rows.forEach(post => {
+        if (post.type === 2) {
+const video = videoMap[post.id];
+post.video_url = video?.video_url || null;
+post.cover_url = video?.cover_url || null;
+post.images = post.cover_url ? [post.cover_url] : [];
+        } else {
+post.images = imageMap[post.id] || [];
+        }
+      });
+    }
+
+    const [countRows] = await pool.execute(
+      'SELECT COUNT(*) AS total FROM posts WHERE user_id = ? AND status = ? AND deleted_at IS NOT NULL',
+      [String(userId), String(RECYCLE_STATUS)]
+    );
+    const total = Number(countRows[0].total) || 0;
+
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      success: true,
+      message: 'success',
+      data: {
+        posts: rows,
+        retention_days: RECYCLE_RETENTION_DAYS,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+      }
+    });
+  } catch (error) {
+    console.error('获取回收站失败:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ code: RESPONSE_CODES.ERROR, message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+});
+
+// 恢复回收站笔记到删除前状态
+router.post('/:id/restore', authenticateToken, async (req, res) => {
+  try {
+    const result = await restorePost(req.params.id, { userId: req.user.id });
+    if (!result) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ code: RESPONSE_CODES.NOT_FOUND, message: '回收站中未找到此笔记' });
+    }
+    res.json({
+      code: RESPONSE_CODES.SUCCESS,
+      success: true,
+      message: '恢复成功',
+      data: { id: req.params.id, status: result.status }
+    });
+  } catch (error) {
+    console.error('恢复笔记失败:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ code: RESPONSE_CODES.ERROR, message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+});
+
+// 用户主动永久删除回收站笔记
+router.delete('/:id/permanent', authenticateToken, async (req, res) => {
+  try {
+    const deleted = await hardDeletePost(req.params.id, { userId: req.user.id });
+    if (!deleted) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ code: RESPONSE_CODES.NOT_FOUND, message: '回收站中未找到此笔记' });
+    }
+    res.json({ code: RESPONSE_CODES.SUCCESS, success: true, message: '已永久删除' });
+  } catch (error) {
+    console.error('永久删除笔记失败:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ code: RESPONSE_CODES.ERROR, message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
+  }
+});
+
 // 获取笔记详情
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
@@ -408,6 +514,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
 
     const post = rows[0];
+
+    if (Number(post.status) === RECYCLE_STATUS || post.deleted_at) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ code: RESPONSE_CODES.NOT_FOUND, message: '笔记不存在' });
+    }
 
     // 检查笔记状态权限
     // status: 0=已发布, 1=草稿, 2=待审核, 3=未过审
@@ -944,8 +1054,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     // 检查笔记是否存在且属于当前用户
     const [postRows] = await pool.execute(
-      'SELECT user_id, type FROM posts WHERE id = ?',
-      [postId.toString()]
+      'SELECT user_id, type FROM posts WHERE id = ? AND status <> ?',
+      [postId.toString(), String(RECYCLE_STATUS)]
     );
 
     if (postRows.length === 0) {
@@ -1210,71 +1320,21 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 删除笔记
+// 删除笔记：移入回收站，30天后再物理清理
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const postId = req.params.id;
-    const userId = req.user.id;
-
-    // 检查笔记是否存在且属于当前用户
-    const [postRows] = await pool.execute(
-      'SELECT user_id FROM posts WHERE id = ?',
-      [postId.toString()]
-    );
-
-    if (postRows.length === 0) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({ code: RESPONSE_CODES.NOT_FOUND, message: '笔记不存在' });
+    const moved = await softDeletePost(req.params.id, { userId: req.user.id });
+    if (!moved) {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ code: RESPONSE_CODES.NOT_FOUND, message: '笔记不存在或已在回收站' });
     }
-
-    if (postRows[0].user_id !== userId) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({ code: RESPONSE_CODES.FORBIDDEN, message: '无权限删除此笔记' });
-    }
-
-    // 获取笔记关联的标签，减少标签使用次数
-    const [tagResult] = await pool.execute(
-      'SELECT tag_id FROM post_tags WHERE post_id = ?',
-      [postId.toString()]
-    );
-
-    // 减少标签使用次数
-    for (const tag of tagResult) {
-      await pool.execute('UPDATE tags SET use_count = GREATEST(use_count - 1, 0) WHERE id = ?', [tag.tag_id.toString()]);
-    }
-
-    // 获取笔记关联的视频文件，用于清理
-    const [videoRows] = await pool.execute('SELECT video_url, cover_url FROM post_videos WHERE post_id = ?', [postId.toString()]);
-
-    // 删除相关数据（由于外键约束，需要按顺序删除）
-    await pool.execute('DELETE FROM post_images WHERE post_id = ?', [postId.toString()]);
-    await pool.execute('DELETE FROM post_videos WHERE post_id = ?', [postId.toString()]);
-    await pool.execute('DELETE FROM post_tags WHERE post_id = ?', [postId.toString()]);
-    await pool.execute('DELETE FROM likes WHERE target_type = 1 AND target_id = ?', [postId.toString()]);
-    await pool.execute('DELETE FROM collections WHERE post_id = ?', [postId.toString()]);
-    await pool.execute('DELETE FROM comments WHERE post_id = ?', [postId.toString()]);
-    await pool.execute('DELETE FROM notifications WHERE target_id = ?', [postId.toString()]);
-
-    // 清理关联的视频文件
-    if (videoRows.length > 0) {
-      const videoUrls = videoRows.map(row => row.video_url).filter(url => url);
-      const coverUrls = videoRows.map(row => row.cover_url).filter(url => url);
-
-      // 异步清理文件，不阻塞响应
-      batchCleanupFiles(videoUrls, coverUrls).catch(error => {
-        console.error('清理笔记关联视频文件失败:', error);
-      });
-    }
-
-    // 最后删除笔记
-    await pool.execute('DELETE FROM posts WHERE id = ?', [postId.toString()]);
-
-    console.log(`删除笔记成功 - 用户ID: ${userId}, 笔记ID: ${postId}`);
 
     res.json({
       code: RESPONSE_CODES.SUCCESS,
-      message: '删除成功'
+      success: true,
+      message: `已移入回收站，${RECYCLE_RETENTION_DAYS}天后自动删除`
     });
   } catch (error) {
-    console.error('删除笔记失败:', error);
+    console.error('移入回收站失败:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ code: RESPONSE_CODES.ERROR, message: ERROR_MESSAGES.INTERNAL_SERVER_ERROR });
   }
 });

@@ -67,7 +67,7 @@
 
 
     <!-- 删除确认弹窗 -->
-    <ConfirmModal :visible="showDeleteModal" title="确认删除" message="确定要删除这篇草稿吗？删除后无法恢复。" type="warning" confirm-text="删除"
+    <ConfirmModal :visible="showDeleteModal" title="确认删除" message="确定要删除这篇草稿吗？删除后将进入回收站并保留30天，在此期间可以恢复。" type="warning" confirm-text="删除"
       cancel-text="取消" @confirm="handleDelete" @cancel="showDeleteModal = false"
       @update:visible="showDeleteModal = $event" />
 
@@ -243,7 +243,7 @@ const handleDelete = async () => {
   try {
     const response = await deletePost(selectedDraft.value.id)
     if (response.success) {
-      showMessage('删除成功', 'success')
+      showMessage('已移入回收站', 'success')
       loadDrafts() // 重新加载列表
     } else {
       showMessage(response.message || '删除失败', 'error')

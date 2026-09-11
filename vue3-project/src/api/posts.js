@@ -73,8 +73,12 @@ function transformPostData(backendPost) {
       createdAt: backendPost.created_at,
       userId: backendPost.user_id
     },
-    // 笔记状态：0-已发布，1-草稿，2-待审核
-    status: backendPost.status
+    // 笔记状态：0-已发布，1-草稿，2-待审核，3-未过审，4-回收站
+    status: backendPost.status,
+    deleted_status: backendPost.deleted_status,
+    deleted_at: backendPost.deleted_at,
+    expires_at: backendPost.expires_at,
+    remaining_days: backendPost.remaining_days
   }
 
   return transformedData;
@@ -432,6 +436,49 @@ export async function deletePost(postId) {
       success: false,
       message: error.response?.data?.message || '删除笔记失败'
     }
+  }
+}
+
+// 获取回收站笔记
+export async function getRecycleBinPosts(params = {}) {
+  try {
+    const response = await request.get('/posts/recycle-bin', {
+      params: {
+        page: params.page || 1,
+        limit: params.limit || 10
+      }
+    })
+    const payload = response.data || response
+    const posts = payload.posts || []
+    return {
+      success: true,
+      data: {
+        posts: posts.map(transformPostData),
+        retention_days: payload.retention_days || 30,
+        pagination: payload.pagination || { page: 1, pages: 1, total: 0 }
+      }
+    }
+  } catch (error) {
+    console.error('获取回收站失败:', error)
+    return { success: false, message: error.response?.data?.message || '获取回收站失败' }
+  }
+}
+
+export async function restorePost(postId) {
+  try {
+    const response = await request.post(`/posts/${postId}/restore`)
+    return { success: response.success !== false, data: response.data, message: response.message || '恢复成功' }
+  } catch (error) {
+    return { success: false, message: error.response?.data?.message || '恢复失败' }
+  }
+}
+
+export async function permanentlyDeletePost(postId) {
+  try {
+    const response = await request.delete(`/posts/${postId}/permanent`)
+    return { success: response.success !== false, message: response.message || '已永久删除' }
+  } catch (error) {
+    return { success: false, message: error.response?.data?.message || '永久删除失败' }
   }
 }
 

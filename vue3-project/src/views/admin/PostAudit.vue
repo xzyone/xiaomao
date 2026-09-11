@@ -18,7 +18,7 @@
 
   <!-- 删除确认弹窗 -->
   <ConfirmDialog v-model:visible="showDeleteModal" title="确认删除"
-    :message="`确定要删除笔记《${selectedItem?.title || selectedItem?.id}》吗？此操作不可撤销。`" type="warning"
+    :message="`确定要删除笔记《${selectedItem?.title || selectedItem?.id}》吗？删除后将进入该用户的回收站并保留30天。`" type="warning"
     confirm-text="删除" cancel-text="取消" @confirm="handleConfirmDelete" @cancel="showDeleteModal = false" />
 </template>
 
