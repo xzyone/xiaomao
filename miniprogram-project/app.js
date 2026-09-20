@@ -1,5 +1,7 @@
 const api = require('./services/api')
 
+let sessionValidationPromise = null
+
 const AUDIT_RESTRICTED_ROUTES = new Set([
   'pages/editor/index',
   'pages/login/index',
@@ -116,7 +118,7 @@ App({
     const result = await this.refreshMiniappConfig()
     if (this.guardAuditRoute(options && options.path)) return
     if (result && !this.isAuditModeEnabled() && wx.getStorageSync('token')) {
-      await this.validateSession(true)
+      await this.validateSession(false)
     }
   },
 
@@ -191,23 +193,31 @@ App({
       return true
     }
 
-    try {
-      const user = await api.getCurrentUser()
-      this.globalData.user = user
-      this.globalData.sessionValid = true
-      this.globalData.lastSessionCheckAt = now
-      wx.setStorageSync('user', user)
-      return true
-    } catch (error) {
-      if (error && error.statusCode === 401) {
-        this.globalData.user = null
-        this.globalData.sessionValid = false
-        this.globalData.lastSessionCheckAt = now
-        return false
+    if (sessionValidationPromise) return sessionValidationPromise
+
+    sessionValidationPromise = (async () => {
+      try {
+        const user = await api.getCurrentUser()
+        this.globalData.user = user
+        this.globalData.sessionValid = true
+        this.globalData.lastSessionCheckAt = Date.now()
+        wx.setStorageSync('user', user)
+        return true
+      } catch (error) {
+        if (error && error.statusCode === 401) {
+          this.globalData.user = null
+          this.globalData.sessionValid = false
+          this.globalData.lastSessionCheckAt = Date.now()
+          return false
+        }
+        console.warn('校验登录状态失败:', error)
+        return null
+      } finally {
+        sessionValidationPromise = null
       }
-      console.warn('校验登录状态失败:', error)
-      return null
-    }
+    })()
+
+    return sessionValidationPromise
   },
 
   applyMiniappConfig(result) {
