@@ -12,6 +12,7 @@ Page({
     tagsText: '',
     submitting: false,
     uploading: false,
+    mediaPicking: false,
     pageAllowed: false,
     ui: { labels: {}, placeholders: {} }
   },
@@ -54,7 +55,7 @@ Page({
       return false
     }
 
-    const state = await app.validateSession(true)
+    const state = await app.validateSession(false)
     if (state === true) return true
 
     if (state === false) {
@@ -76,10 +77,25 @@ Page({
   onTagsInput(event) { this.setData({ tagsText: event.detail.value }) },
   onCategoryChange(event) { this.setData({ categoryIndex: Number(event.detail.value) }) },
 
+  ensureLocalMediaAccess() {
+    const app = getApp()
+    if (app.isAuditModeEnabled()) return false
+
+    if (!wx.getStorageSync('token')) {
+      wx.showToast({ title: app.getUiText('messages', 'loginRequired'), icon: 'none' })
+      wx.navigateTo({ url: '/pages/login/index' })
+      return false
+    }
+
+    return true
+  },
+
   async chooseImages() {
-    if (!(await this.ensureSession())) return
+    if (this.data.mediaPicking || !this.ensureLocalMediaAccess()) return
     const remain = 9 - this.data.images.length
     if (remain <= 0) return
+
+    this.setData({ mediaPicking: true })
     try {
       const result = await wx.chooseMedia({
         count: remain,
@@ -89,11 +105,19 @@ Page({
       })
       const paths = (result.tempFiles || []).map(file => file.tempFilePath)
       this.setData({ images: this.data.images.concat(paths).slice(0, 9) })
-    } catch (error) {}
+    } catch (error) {
+      if (!String(error && error.errMsg || '').includes('cancel')) {
+        console.warn('选择图片失败:', error)
+      }
+    } finally {
+      this.setData({ mediaPicking: false })
+    }
   },
 
   async chooseVideo() {
-    if (!(await this.ensureSession())) return
+    if (this.data.mediaPicking || !this.ensureLocalMediaAccess()) return
+
+    this.setData({ mediaPicking: true })
     try {
       const result = await wx.chooseMedia({
         count: 1,
@@ -111,7 +135,13 @@ Page({
           }
         })
       }
-    } catch (error) {}
+    } catch (error) {
+      if (!String(error && error.errMsg || '').includes('cancel')) {
+        console.warn('选择视频失败:', error)
+      }
+    } finally {
+      this.setData({ mediaPicking: false })
+    }
   },
 
   removeImage(event) {
