@@ -66,7 +66,8 @@ function buildHeaders(extra = {}) {
 }
 
 function isReadonlyModeResponse(statusCode, body = {}) {
-  return statusCode === 403 && body.error === 'MINIAPP_READONLY'
+  return statusCode === 403 &&
+    (body.error === 'MINIAPP_READONLY' || body.error === 'MINIAPP_AUDIT_MODE')
 }
 
 async function refreshSession() {
