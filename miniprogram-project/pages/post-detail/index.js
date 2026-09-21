@@ -81,7 +81,10 @@ Page({
         currentImageCanShowOriginal: Boolean(originalImages[0] && displayImages[0] !== originalImages[0])
       })
     } catch (error) {
-      wx.showToast({ title: error.message || getApp().getUiText('messages', 'detailLoadFailed'), icon: 'none' })
+      wx.showToast({ title: error.message || app.getUiText('messages', 'detailLoadFailed'), icon: 'none' })
+      if (this.data.readonlyModeEnabled && error && error.statusCode === 404) {
+        setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 100)
+      }
     } finally {
       this.setData({ loading: false })
     }
