@@ -236,10 +236,10 @@ async function miniappReadonlyGuard(req, res, next) {
       return next();
     }
 
-    const auditModeEnabled = await getMiniappReadonlyMode();
-    req.miniappAuditMode = auditModeEnabled;
+    const readonlyModeEnabled = await getMiniappReadonlyMode();
+    req.miniappReadonlyMode = readonlyModeEnabled;
 
-    if (!auditModeEnabled) {
+    if (!readonlyModeEnabled) {
       return next();
     }
 
@@ -253,7 +253,7 @@ async function miniappReadonlyGuard(req, res, next) {
 
     // Authentication remains available in read-only mode. Signing in does not
     // grant write access: publishing, commenting and uploads are still blocked
-    // by this guard while audit mode is enabled.
+    // by this guard while read-only mode is enabled.
     const authAllowed =
       (req.method === 'POST' && ['/auth/login', '/auth/refresh', '/auth/logout'].includes(requestPath)) ||
       (req.method === 'GET' && requestPath === '/auth/me');
@@ -265,24 +265,29 @@ async function miniappReadonlyGuard(req, res, next) {
     if (req.method !== 'GET') {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         code: RESPONSE_CODES.FORBIDDEN,
-        message: '小程序当前处于审核模式',
-        error: 'MINIAPP_AUDIT_MODE'
+        message: '小程序当前处于只读模式',
+        error: 'MINIAPP_READONLY'
       });
     }
 
     if (requestPath === '/posts') {
       req.query.status = '0';
+      req.query.type = '1';
       return next();
     }
 
     const postDetailMatch = requestPath.match(/^\/posts\/(\d+)$/);
     if (postDetailMatch) {
       const [rows] = await pool.execute(
-        'SELECT status FROM posts WHERE id = ? LIMIT 1',
+        'SELECT status, type FROM posts WHERE id = ? LIMIT 1',
         [postDetailMatch[1]]
       );
 
-      if (rows.length === 0 || Number(rows[0].status) !== 0) {
+      if (
+        rows.length === 0 ||
+        Number(rows[0].status) !== 0 ||
+        Number(rows[0].type) !== 1
+      ) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
           code: RESPONSE_CODES.NOT_FOUND,
           message: '笔记不存在'
@@ -299,11 +304,11 @@ async function miniappReadonlyGuard(req, res, next) {
 
     return res.status(HTTP_STATUS.FORBIDDEN).json({
       code: RESPONSE_CODES.FORBIDDEN,
-      message: '小程序当前处于审核模式',
-      error: 'MINIAPP_AUDIT_MODE'
+      message: '小程序当前处于只读模式',
+      error: 'MINIAPP_READONLY'
     });
   } catch (error) {
-    console.error('检查小程序审核模式失败:', error);
+    console.error('检查小程序只读模式失败:', error);
     return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       code: RESPONSE_CODES.ERROR,
       message: '读取小程序配置失败'
