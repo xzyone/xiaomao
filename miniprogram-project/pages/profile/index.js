@@ -14,20 +14,20 @@ Page({
   },
   async onShow() {
     const app = getApp()
-    if (!(await app.ensureNormalMode({ toast: false }))) return
+    await app.refreshMiniappConfig()
     app.setPageTitle('profile')
-    this.setData({ ui: app.getUi() })
-    if (!this.data.pageAllowed) this.setData({ pageAllowed: true, auditModeEnabled: false })
+    const auditModeEnabled = app.isAuditModeEnabled()
+    this.setData({ ui: app.getUi(), pageAllowed: true, auditModeEnabled })
 
     const token = wx.getStorageSync('token')
     if (!token) {
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loggedIn: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, loggedIn: false, loading: false })
       return
     }
 
     const sessionState = await app.validateSession(true)
     if (sessionState === false) {
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loggedIn: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, loggedIn: false, loading: false })
       return
     }
 
@@ -35,7 +35,6 @@ Page({
     this.setData({
       user,
       avatarUrl: user ? (user.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR,
-      auditModeEnabled: false,
       loggedIn: true,
       loading: false
     })
