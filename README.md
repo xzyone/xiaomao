@@ -92,10 +92,10 @@ sh deploy.sh deploy
 
 脚本会构建前端、构建并启动后端，同时保持媒体数据在代码仓库之外。脚本不会执行 `git stash`、`git clean`、`docker compose down -v` 或 volume prune。
 
-如果构建环境需要代理，可以通过 `XIAOMAO_PROXY` 覆盖：
+如果构建环境需要代理，可以通过 `DEPLOY_PROXY` 覆盖：
 
 ```bash
-XIAOMAO_PROXY=http://proxy-host:port sh deploy.sh deploy
+DEPLOY_PROXY=http://proxy-host:port sh deploy.sh deploy
 ```
 
 ## 日常更新
