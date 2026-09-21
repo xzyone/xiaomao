@@ -18,7 +18,13 @@ Page({
     await this.syncReadonlyMode()
     await Promise.all([this.loadCategories(), this.loadPosts(true)])
   },
-  async onShow() { await this.syncReadonlyMode() },
+  async onShow() {
+    const wasReadonlyModeEnabled = this.data.readonlyModeEnabled
+    await this.syncReadonlyMode()
+    if (wasReadonlyModeEnabled !== this.data.readonlyModeEnabled && this.data.posts.length) {
+      await this.loadPosts(true)
+    }
+  },
   async onPullDownRefresh() {
     await this.syncReadonlyMode(); await this.loadPosts(true); wx.stopPullDownRefresh()
   },
@@ -27,11 +33,18 @@ Page({
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('home')
+    const readonlyModeEnabled = app.isReadonlyModeEnabled()
     this.setData({
-      readonlyModeEnabled: app.isReadonlyModeEnabled(),
+      readonlyModeEnabled,
       loggedIn: Boolean(wx.getStorageSync('token')),
       ui: app.getUi()
     })
+
+    if (readonlyModeEnabled && this.data.posts.some(post => Number(post.type) !== 1)) {
+      const posts = this.data.posts.filter(post => Number(post.type) === 1)
+      this.setData({ posts })
+      this.distributePosts(posts)
+    }
   },
   async loadCategories() {
     try {
