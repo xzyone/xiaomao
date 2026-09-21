@@ -14,7 +14,6 @@ const READONLY_UI_KEYS = Object.freeze({
     'emptyContent',
     'navHome',
     'navProfile',
-    'postVideo',
     'anonymousUser',
     'loginBrand',
     'loginSubtitle',
