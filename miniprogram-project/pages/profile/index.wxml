@@ -15,5 +15,5 @@
     <text class="guest-title">{{ui.labels.profileGuestTitle}}</text>
     <button class="primary-button" bindtap="goLogin">{{ui.labels.profileGoLogin}}</button>
   </view>
-  <bottom-nav current="profile" audit-mode-enabled="{{auditModeEnabled}}" labels="{{ui.labels}}" />
+  <bottom-nav current="profile" audit-mode-enabled="{{auditModeEnabled}}" logged-in="{{loggedIn}}" labels="{{ui.labels}}" />
 </view>
