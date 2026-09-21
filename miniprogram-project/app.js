@@ -4,7 +4,7 @@ const { refreshSession } = require('./services/request')
 let sessionValidationPromise = null
 const PERSISTENT_SESSION_VERSION = 1
 
-const AUDIT_RESTRICTED_ROUTES = new Set([
+const READONLY_RESTRICTED_ROUTES = new Set([
   'pages/editor/index'
 ])
 
@@ -97,27 +97,27 @@ function cloneDefaultUi() {
 
 App({
   globalData: {
-    auditConfig: {
-      auditModeEnabled: true
+    readonlyConfig: {
+      readonlyModeEnabled: true
     },
     ui: cloneDefaultUi(),
     configLoaded: false,
     user: null,
     sessionValid: false,
     lastSessionCheckAt: 0,
-    auditRedirecting: false
+    readonlyRedirecting: false
   },
 
   async onLaunch(options) {
     this.restoreSession()
     await this.refreshMiniappConfig()
     if (wx.getStorageSync('token')) await this.upgradePersistentSession()
-    this.guardAuditRoute(options && options.path)
+    this.guardReadonlyRoute(options && options.path)
   },
 
   async onShow(options) {
     const result = await this.refreshMiniappConfig()
-    if (this.guardAuditRoute(options && options.path)) return
+    if (this.guardReadonlyRoute(options && options.path)) return
     if (result && wx.getStorageSync('token')) {
       await this.upgradePersistentSession()
       await this.validateSession(false)
@@ -129,8 +129,8 @@ App({
     this.globalData.sessionValid = Boolean(wx.getStorageSync('token'))
   },
 
-  isAuditModeEnabled() {
-    return Boolean(this.globalData.auditConfig && this.globalData.auditConfig.auditModeEnabled)
+  isReadonlyModeEnabled() {
+    return Boolean(this.globalData.readonlyConfig && this.globalData.readonlyConfig.readonlyModeEnabled)
   },
 
   async upgradePersistentSession() {
@@ -173,19 +173,19 @@ App({
     return pages.length ? String(pages[pages.length - 1].route || '') : ''
   },
 
-  guardAuditRoute(path) {
-    if (!this.isAuditModeEnabled()) return false
+  guardReadonlyRoute(path) {
+    if (!this.isReadonlyModeEnabled()) return false
 
     const route = this.currentRoute(path)
-    if (!AUDIT_RESTRICTED_ROUTES.has(route)) return false
-    if (this.globalData.auditRedirecting) return true
+    if (!READONLY_RESTRICTED_ROUTES.has(route)) return false
+    if (this.globalData.readonlyRedirecting) return true
 
-    this.globalData.auditRedirecting = true
+    this.globalData.readonlyRedirecting = true
     wx.reLaunch({
       url: '/pages/home/index',
       complete: () => {
         setTimeout(() => {
-          this.globalData.auditRedirecting = false
+          this.globalData.readonlyRedirecting = false
         }, 200)
       }
     })
@@ -233,10 +233,10 @@ App({
   },
 
   applyMiniappConfig(result) {
-    const auditModeEnabled = !(
+    const readonlyModeEnabled = !(
       result &&
-      result.auditConfig &&
-      result.auditConfig.auditModeEnabled === false
+      result.readonlyConfig &&
+      result.readonlyConfig.readonlyModeEnabled === false
     )
 
     const ui = cloneDefaultUi()
@@ -252,14 +252,14 @@ App({
       }
     }
 
-    this.globalData.auditConfig = { auditModeEnabled }
+    this.globalData.readonlyConfig = { readonlyModeEnabled }
     this.globalData.ui = ui
     this.globalData.configLoaded = true
     return result
   },
 
-  setAuditFallback() {
-    this.globalData.auditConfig = { auditModeEnabled: true }
+  setReadonlyFallback() {
+    this.globalData.readonlyConfig = { readonlyModeEnabled: true }
   },
 
   async refreshMiniappConfig() {
@@ -268,17 +268,17 @@ App({
       return this.applyMiniappConfig(result)
     } catch (error) {
       console.warn('读取小程序配置失败，保持安全默认状态:', error)
-      this.setAuditFallback()
+      this.setReadonlyFallback()
       return null
     }
   },
 
-  async ensureNormalMode({ toast = true } = {}) {
+  async ensureWritableMode({ toast = true } = {}) {
     await this.refreshMiniappConfig()
-    if (!this.isAuditModeEnabled()) return true
+    if (!this.isReadonlyModeEnabled()) return true
 
     if (toast) wx.showToast({ title: this.getUiText('messages', 'browseOnly'), icon: 'none' })
-    if (!this.guardAuditRoute()) {
+    if (!this.guardReadonlyRoute()) {
       setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 50)
     }
     return false
