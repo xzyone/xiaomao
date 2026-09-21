@@ -4,7 +4,7 @@ const { RESPONSE_CODES } = require('../constants');
 const { getMiniappReadonlyMode, getMiniappUiConfig } = require('../utils/miniappPolicy');
 
 const AUDIT_UI_KEYS = Object.freeze({
-  titles: ['home', 'detail'],
+  titles: ['home', 'detail', 'login', 'profile'],
   labels: [
     'homeBrand',
     'homeSubtitle',
@@ -13,12 +13,35 @@ const AUDIT_UI_KEYS = Object.freeze({
     'reachedEnd',
     'emptyContent',
     'navHome',
+    'navProfile',
     'postVideo',
     'anonymousUser',
+    'loginBrand',
+    'loginSubtitle',
+    'loginAccount',
+    'loginPassword',
+    'loginSubmit',
+    'loginHint',
+    'profileAccountPrefix',
+    'profileEmptyBio',
+    'profileFollowing',
+    'profileFans',
+    'profileLikes',
+    'profileLogout',
+    'profileGuestTitle',
+    'profileGoLogin',
     'detailOriginal',
     'detailViews'
   ],
+  placeholders: [
+    'loginAccount',
+    'loginPassword'
+  ],
   messages: [
+    'loginCredentialsRequired',
+    'loginSuccess',
+    'loginFailed',
+    'sessionUnavailable',
     'loadFailed',
     'detailLoadFailed',
     'detailOriginalLoading',
