@@ -19,7 +19,7 @@ Page({
 
   async onLoad() {
     const app = getApp()
-    if (!(await app.ensureNormalMode({ toast: false }))) return
+    if (!(await app.ensureWritableMode({ toast: false }))) return
     app.setPageTitle('editor')
     this.setData({ pageAllowed: true, ui: app.getUi() })
     if (!wx.getStorageSync('token')) {
@@ -36,7 +36,7 @@ Page({
 
   async onShow() {
     const app = getApp()
-    if (!(await app.ensureNormalMode({ toast: false }))) return
+    if (!(await app.ensureWritableMode({ toast: false }))) return
     app.setPageTitle('editor')
     this.setData({ ui: app.getUi() })
     if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
@@ -47,7 +47,7 @@ Page({
 
   async ensureSession() {
     const app = getApp()
-    if (!(await app.ensureNormalMode())) return false
+    if (!(await app.ensureWritableMode())) return false
 
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: app.getUiText('messages', 'loginRequired'), icon: 'none' })
@@ -79,7 +79,7 @@ Page({
 
   ensureLocalMediaAccess() {
     const app = getApp()
-    if (app.isAuditModeEnabled()) return false
+    if (app.isReadonlyModeEnabled()) return false
 
     if (!wx.getStorageSync('token')) {
       wx.showToast({ title: app.getUiText('messages', 'loginRequired'), icon: 'none' })
@@ -187,7 +187,7 @@ Page({
     this.setData({ submitting: true, uploading: true })
     wx.showLoading({ title: app.getUiText('messages', 'editorSubmitting'), mask: true })
     try {
-      if (!(await app.ensureNormalMode())) throw new Error(app.getUiText('messages', 'browseOnly'))
+      if (!(await app.ensureWritableMode())) throw new Error(app.getUiText('messages', 'browseOnly'))
 
       const category = this.data.categoryIndex >= 0 ? this.data.categories[this.data.categoryIndex] : null
       const tags = this.data.tagsText
