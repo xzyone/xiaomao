@@ -110,12 +110,12 @@ router.put('/', adminAuth, async (req, res) => {
       if (miniappReadonlyMode === null) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           code: RESPONSE_CODES.VALIDATION_ERROR,
-          message: '无效的小程序审核模式'
+          message: '无效的小程序只读模式'
         });
       }
 
       await setMiniappReadonlyMode(miniappReadonlyMode);
-      messages.push(miniappReadonlyMode ? '小程序审核模式已开启' : '小程序审核模式已关闭');
+      messages.push(miniappReadonlyMode ? '小程序只读模式已开启' : '小程序只读模式已关闭');
     }
 
     if (hasMiniappUi) {
