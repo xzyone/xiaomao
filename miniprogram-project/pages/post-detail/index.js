@@ -40,6 +40,10 @@ Page({
     const wasReadonlyModeEnabled = this.data.readonlyModeEnabled
     await this.syncReadonlyMode()
     if (this.data.readonlyModeEnabled) {
+      if (this.data.post && Number(this.data.post.type) !== 1) {
+        wx.reLaunch({ url: '/pages/home/index' })
+        return
+      }
       if (this.data.comments.length || this.data.commentText) this.setData({ comments: [], commentText: '' })
       return
     }
