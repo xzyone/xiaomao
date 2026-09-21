@@ -16,6 +16,7 @@ function clearSession() {
   wx.removeStorageSync('token')
   wx.removeStorageSync('refresh_token')
   wx.removeStorageSync('user')
+  wx.removeStorageSync('persistent_session_version')
 
   try {
     const app = getApp()
@@ -96,6 +97,7 @@ async function refreshSession() {
         ) {
           wx.setStorageSync('token', tokens.access_token)
           wx.setStorageSync('refresh_token', tokens.refresh_token)
+          wx.setStorageSync('persistent_session_version', 1)
 
           try {
             const app = getApp()
