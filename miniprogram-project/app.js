@@ -5,7 +5,9 @@ let sessionValidationPromise = null
 const PERSISTENT_SESSION_VERSION = 1
 
 const READONLY_RESTRICTED_ROUTES = new Set([
-  'pages/editor/index'
+  'pages/editor/index',
+  'pages/login/index',
+  'pages/profile/index'
 ])
 
 const DEFAULT_UI = Object.freeze({
@@ -111,14 +113,16 @@ App({
   async onLaunch(options) {
     this.restoreSession()
     await this.refreshMiniappConfig()
-    if (wx.getStorageSync('token')) await this.upgradePersistentSession()
+    if (!this.isReadonlyModeEnabled() && wx.getStorageSync('token')) {
+      await this.upgradePersistentSession()
+    }
     this.guardReadonlyRoute(options && options.path)
   },
 
   async onShow(options) {
     const result = await this.refreshMiniappConfig()
     if (this.guardReadonlyRoute(options && options.path)) return
-    if (result && wx.getStorageSync('token')) {
+    if (result && !this.isReadonlyModeEnabled() && wx.getStorageSync('token')) {
       await this.upgradePersistentSession()
       await this.validateSession(false)
     }
