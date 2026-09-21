@@ -61,7 +61,14 @@ function buildHeaders(extra = {}) {
     'X-Client-Platform': 'wechat-miniapp',
     ...extra
   }
-  if (token) headers.Authorization = `Bearer ${token}`
+
+  let readonlyModeEnabled = false
+  try {
+    const app = getApp()
+    readonlyModeEnabled = Boolean(app && typeof app.isReadonlyModeEnabled === 'function' && app.isReadonlyModeEnabled())
+  } catch (error) {}
+
+  if (token && !readonlyModeEnabled) headers.Authorization = `Bearer ${token}`
   return headers
 }
 
