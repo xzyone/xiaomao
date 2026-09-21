@@ -1,7 +1,7 @@
 Component({
   properties: {
     current: { type: String, value: 'home' },
-    auditModeEnabled: { type: Boolean, value: true },
+    readonlyModeEnabled: { type: Boolean, value: true },
     loggedIn: { type: Boolean, value: false },
     labels: { type: Object, value: {} }
   },
@@ -10,7 +10,7 @@ Component({
       if (this.data.current !== 'home') wx.reLaunch({ url: '/pages/home/index' })
     },
     goPublish() {
-      if (this.data.auditModeEnabled) return
+      if (this.data.readonlyModeEnabled) return
       wx.navigateTo({ url: '/pages/editor/index' })
     },
     goProfile() {
