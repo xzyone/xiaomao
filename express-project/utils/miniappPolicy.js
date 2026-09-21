@@ -297,8 +297,14 @@ async function miniappReadonlyGuard(req, res, next) {
       return next();
     }
 
+    if (requestPath === '/search') {
+      const searchType = String(req.query.type || 'all').toLowerCase();
+      if (searchType !== 'users') req.query.type = 'posts';
+      return next();
+    }
+
     // Only data required by the read-only experience remains available here.
-    if (requestPath === '/categories' || requestPath === '/tags' || requestPath === '/search') {
+    if (requestPath === '/categories' || requestPath === '/tags') {
       return next();
     }
 
