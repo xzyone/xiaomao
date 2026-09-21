@@ -32,33 +32,38 @@ Page({
         menus: ['shareAppMessage', 'shareTimeline']
       })
     }
-    await this.syncAuditMode()
+    await this.syncReadonlyMode()
     await this.loadPost()
     if (!this.data.readonlyModeEnabled) await this.loadComments()
   },
   async onShow() {
-    const wasAuditModeEnabled = this.data.readonlyModeEnabled
-    await this.syncAuditMode()
+    const wasReadonlyModeEnabled = this.data.readonlyModeEnabled
+    await this.syncReadonlyMode()
     if (this.data.readonlyModeEnabled) {
       if (this.data.comments.length || this.data.commentText) this.setData({ comments: [], commentText: '' })
       return
     }
-    if (wasAuditModeEnabled && this.data.post && this.data.comments.length === 0) await this.loadComments()
+    if (wasReadonlyModeEnabled && this.data.post && this.data.comments.length === 0) await this.loadComments()
   },
-  async syncAuditMode() {
+  async syncReadonlyMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('detail')
     const readonlyModeEnabled = app.isReadonlyModeEnabled()
     this.setData({
       readonlyModeEnabled,
-      loggedIn: !readonlyModeEnabled && Boolean(wx.getStorageSync('token')),
+      loggedIn: Boolean(wx.getStorageSync('token')),
       ui: app.getUi()
     })
   },
   async loadPost() {
     try {
       const post = await api.detail(this.data.id)
+      if (this.data.readonlyModeEnabled && Number(post && post.type) !== 1) {
+        wx.showToast({ title: app.getUiText('messages', 'detailLoadFailed'), icon: 'none' })
+        setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 100)
+        return
+      }
       const originalImages = Array.isArray(post.images) ? post.images : []
       const thumbnailImages = Array.isArray(post.thumbnail_images) ? post.thumbnail_images : []
       const displayImages = originalImages.map((original, index) => thumbnailImages[index] || original)
@@ -86,7 +91,7 @@ Page({
       const result = await api.msgs(this.data.id)
       this.setData({ comments: (result && result.comments) || [] })
     } catch (error) {
-      if (error.error !== 'MINIAPP_READONLY' && error.error !== 'MINIAPP_READONLY') {
+      if (error.error !== 'MINIAPP_READONLY') {
         console.warn('加载评论失败:', error)
       }
     }
@@ -178,8 +183,7 @@ Page({
   },
   onCommentInput(event) { this.setData({ commentText: event.detail.value }) },
   handleCommentInputTap() { if (!this.data.loggedIn) this.goLogin() },
-  async goLogin() {
-    if (!(await getApp().ensureWritableMode())) return
+  goLogin() {
     wx.navigateTo({ url: '/pages/login/index' })
   },
   async submitComment() {
