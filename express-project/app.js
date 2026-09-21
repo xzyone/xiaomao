@@ -89,8 +89,9 @@ app.get('/api/health', (req, res) => {
 
 // 路由配置
 app.use('/api', apiLimiter);
-// 小程序审核模式在服务端执行。所有小程序API请求都会携带
-// X-Client-Platform: wechat-miniapp，开启审核模式后只允许浏览相关GET接口。
+// 小程序只读模式在服务端执行。所有小程序API请求都会携带
+// X-Client-Platform: wechat-miniapp。开启后仅允许认证与只读浏览，
+// 笔记列表/详情限制为图文内容，发布、评论、上传等写操作统一拦截。
 app.use('/api', miniappReadonlyGuard);
 app.use('/api/miniapp', miniappRoutes);
 app.use('/api/auth', authLimiter);
