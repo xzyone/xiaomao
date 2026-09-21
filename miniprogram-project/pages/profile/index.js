@@ -14,10 +14,9 @@ Page({
   },
   async onShow() {
     const app = getApp()
-    await app.refreshMiniappConfig()
+    if (!(await app.ensureWritableMode({ toast: false }))) return
     app.setPageTitle('profile')
-    const readonlyModeEnabled = app.isReadonlyModeEnabled()
-    this.setData({ ui: app.getUi(), pageAllowed: true, readonlyModeEnabled })
+    this.setData({ ui: app.getUi(), pageAllowed: true, readonlyModeEnabled: false })
 
     const token = wx.getStorageSync('token')
     if (!token) {
