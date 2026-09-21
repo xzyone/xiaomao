@@ -17,20 +17,15 @@ Page({
   },
   async onLoad() {
     const app = getApp()
-    const allowed = await app.ensureNormalMode({ toast: false })
-    if (allowed) {
-      app.setPageTitle('login')
-      this.setData({ pageAllowed: true, ui: app.getUi() })
-    }
+    await app.refreshMiniappConfig()
+    app.setPageTitle('login')
+    this.setData({ pageAllowed: true, ui: app.getUi() })
   },
   async onShow() {
     const app = getApp()
-    const allowed = await app.ensureNormalMode({ toast: false })
-    if (allowed) {
-      app.setPageTitle('login')
-      this.setData({ ui: app.getUi() })
-      if (!this.data.pageAllowed) this.setData({ pageAllowed: true })
-    }
+    await app.refreshMiniappConfig()
+    app.setPageTitle('login')
+    this.setData({ pageAllowed: true, ui: app.getUi() })
   },
   onUserIdInput(event) { this.setData({ userId: event.detail.value }) },
   onPasswordInput(event) { this.setData({ password: event.detail.value }) },
@@ -38,7 +33,6 @@ Page({
   async submit() {
     if (this.data.submitting) return
     const app = getApp()
-    if (!(await app.ensureNormalMode())) return
     if (!this.data.userId.trim() || !this.data.password) {
       return wx.showToast({ title: app.getUiText('messages', 'loginCredentialsRequired'), icon: 'none' })
     }
