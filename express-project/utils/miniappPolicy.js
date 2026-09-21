@@ -251,6 +251,17 @@ async function miniappReadonlyGuard(req, res, next) {
       return next();
     }
 
+    // Authentication remains available in read-only mode. Signing in does not
+    // grant write access: publishing, commenting and uploads are still blocked
+    // by this guard while audit mode is enabled.
+    const authAllowed =
+      (req.method === 'POST' && ['/auth/login', '/auth/refresh', '/auth/logout'].includes(requestPath)) ||
+      (req.method === 'GET' && requestPath === '/auth/me');
+
+    if (authAllowed) {
+      return next();
+    }
+
     if (req.method !== 'GET') {
       return res.status(HTTP_STATUS.FORBIDDEN).json({
         code: RESPONSE_CODES.FORBIDDEN,
