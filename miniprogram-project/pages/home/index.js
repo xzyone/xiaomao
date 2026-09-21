@@ -5,7 +5,7 @@ const PAGE_SIZE = 12
 Page({
   data: {
     posts: [], leftPosts: [], rightPosts: [], categories: [], currentCategory: 'recommend',
-    page: 1, hasMore: true, loading: false, auditModeEnabled: true,
+    page: 1, hasMore: true, loading: false, auditModeEnabled: true, loggedIn: false,
     ui: { labels: {} }
   },
   async onLoad() {
@@ -27,7 +27,11 @@ Page({
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('home')
-    this.setData({ auditModeEnabled: app.isAuditModeEnabled(), ui: app.getUi() })
+    this.setData({
+      auditModeEnabled: app.isAuditModeEnabled(),
+      loggedIn: Boolean(wx.getStorageSync('token')),
+      ui: app.getUi()
+    })
   },
   async loadCategories() {
     try {
