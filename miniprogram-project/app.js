@@ -5,9 +5,7 @@ let sessionValidationPromise = null
 const PERSISTENT_SESSION_VERSION = 1
 
 const AUDIT_RESTRICTED_ROUTES = new Set([
-  'pages/editor/index',
-  'pages/login/index',
-  'pages/profile/index'
+  'pages/editor/index'
 ])
 
 const DEFAULT_UI = Object.freeze({
@@ -113,14 +111,14 @@ App({
   async onLaunch(options) {
     this.restoreSession()
     await this.refreshMiniappConfig()
-    if (!this.isAuditModeEnabled()) await this.upgradePersistentSession()
+    if (wx.getStorageSync('token')) await this.upgradePersistentSession()
     this.guardAuditRoute(options && options.path)
   },
 
   async onShow(options) {
     const result = await this.refreshMiniappConfig()
     if (this.guardAuditRoute(options && options.path)) return
-    if (result && !this.isAuditModeEnabled() && wx.getStorageSync('token')) {
+    if (result && wx.getStorageSync('token')) {
       await this.upgradePersistentSession()
       await this.validateSession(false)
     }
@@ -136,7 +134,6 @@ App({
   },
 
   async upgradePersistentSession() {
-    if (this.isAuditModeEnabled()) return false
     if (!wx.getStorageSync('token') || !wx.getStorageSync('refresh_token')) return false
     if (Number(wx.getStorageSync('persistent_session_version')) === PERSISTENT_SESSION_VERSION) return true
 
@@ -196,8 +193,6 @@ App({
   },
 
   async validateSession(force = false) {
-    if (this.isAuditModeEnabled()) return false
-
     const token = wx.getStorageSync('token')
     if (!token) {
       this.globalData.user = null
