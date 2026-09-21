@@ -15,15 +15,15 @@ Page({
         menus: ['shareAppMessage', 'shareTimeline']
       })
     }
-    await this.syncAuditMode()
+    await this.syncReadonlyMode()
     await Promise.all([this.loadCategories(), this.loadPosts(true)])
   },
-  async onShow() { await this.syncAuditMode() },
+  async onShow() { await this.syncReadonlyMode() },
   async onPullDownRefresh() {
-    await this.syncAuditMode(); await this.loadPosts(true); wx.stopPullDownRefresh()
+    await this.syncReadonlyMode(); await this.loadPosts(true); wx.stopPullDownRefresh()
   },
   async onReachBottom() { if (this.data.hasMore && !this.data.loading) await this.loadPosts(false) },
-  async syncAuditMode() {
+  async syncReadonlyMode() {
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('home')
@@ -45,6 +45,7 @@ Page({
     this.setData({ loading: true })
     try {
       const params = { page: nextPage, limit: PAGE_SIZE }
+      if (this.data.readonlyModeEnabled) params.type = 1
       if (this.data.currentCategory !== 'recommend') params.category = this.data.currentCategory
       const result = await api.posts(params)
       const incoming = (result && result.posts) || []
