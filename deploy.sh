@@ -3,8 +3,7 @@ set -eu
 
 REPO_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 FRONTEND_DIR="$REPO_DIR/vue3-project"
-DEFAULT_PROXY="http://192.168.31.31:20172"
-PROXY_URL="${XIAOMAO_PROXY-$DEFAULT_PROXY}"
+PROXY_URL=""
 UPLOAD_DIR=""
 RUN_UID="1000"
 RUN_GID="1000"
@@ -25,8 +24,13 @@ Usage:
   sh deploy.sh logs      Follow backend logs
   sh deploy.sh status    Show compose status
 
-Override the build proxy with XIAOMAO_PROXY, or disable it for one run with:
-  XIAOMAO_PROXY= sh deploy.sh deploy
+Set the optional build/update proxy in the local .env file:
+  XIAOMAO_PROXY=http://127.0.0.1:7890
+
+You can also override it for one run:
+  XIAOMAO_PROXY=http://127.0.0.1:7890 sh deploy.sh deploy
+
+Leave XIAOMAO_PROXY empty to disable the proxy.
 
 Database schema migrations run automatically after a successful backend image build
 and before the backend container is replaced.
@@ -65,6 +69,16 @@ read_env_value() {
   esac
 
   printf '%s' "$value"
+}
+
+load_proxy_config() {
+  if [ "${XIAOMAO_PROXY+x}" = "x" ]; then
+    PROXY_URL="$XIAOMAO_PROXY"
+  elif [ -f "$REPO_DIR/.env" ]; then
+    PROXY_URL="$(read_env_value XIAOMAO_PROXY)"
+  else
+    PROXY_URL=""
+  fi
 }
 
 load_runtime_config() {
@@ -161,6 +175,7 @@ deploy_all() {
 }
 
 check_docker
+load_proxy_config
 
 case "${1:-deploy}" in
   deploy)
