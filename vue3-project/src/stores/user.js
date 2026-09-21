@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi, userApi } from '@/api/index.js'
+import { useNotificationStore } from '@/stores/notification'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
@@ -108,7 +109,6 @@ export const useUserStore = defineStore('user', () => {
 
       // 重置未读通知数量
       try {
-        const { useNotificationStore } = await import('./notification')
         const notificationStore = useNotificationStore()
         notificationStore.resetUnreadCount()
       } catch (error) {
