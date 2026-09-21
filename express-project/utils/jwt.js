@@ -18,8 +18,8 @@ function generateAccessToken(payload) {
  * @param {Object} payload - 用户信息
  * @returns {String} JWT refresh token
  */
-function generateRefreshToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES_IN });
+function generateRefreshToken(payload, expiresIn = REFRESH_TOKEN_EXPIRES_IN) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
 }
 
 /**
