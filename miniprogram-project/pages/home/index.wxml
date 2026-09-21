@@ -18,5 +18,5 @@
   <view wx:if="{{loading}}" class="load-state">{{ui.labels.loading}}</view>
   <view wx:elif="{{posts.length && !hasMore}}" class="load-state">{{ui.labels.reachedEnd}}</view>
   <view wx:elif="{{!posts.length && !loading}}" class="empty-state">{{ui.labels.emptyContent}}</view>
-  <bottom-nav current="home" audit-mode-enabled="{{auditModeEnabled}}" labels="{{ui.labels}}" />
+  <bottom-nav current="home" audit-mode-enabled="{{auditModeEnabled}}" logged-in="{{loggedIn}}" labels="{{ui.labels}}" />
 </view>
