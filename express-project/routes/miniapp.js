@@ -82,6 +82,11 @@ router.get('/config', async (req, res) => {
         readonlyConfig: {
           readonlyModeEnabled
         },
+        // Legacy field kept during the Mini Program rollout so the currently
+        // published client can continue to read the same switch.
+        auditConfig: {
+          auditModeEnabled: readonlyModeEnabled
+        },
         ui: readonlyModeEnabled ? getReadonlyUiConfig(ui) : ui
       }
     });
