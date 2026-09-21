@@ -12,7 +12,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import 'virtual:svg-icons-register'
+import 'virtual:svg-icons/register'
 // 全局css
 import '@/assets/css/index.css'
 import '@/assets/css/animations.css'
