@@ -5,6 +5,7 @@ const { pool, email: emailConfig } = require('../config/config');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/jwt');
 const { authenticateToken } = require('../middleware/auth');
 const { getIPLocation, getRealIP } = require('../utils/ipLocation');
+const { isMiniappRequest } = require('../utils/miniappPolicy');
 const { sendEmailCode } = require('../utils/email');
 const svgCaptcha = require('svg-captcha');
 const path = require('path');
@@ -736,24 +737,33 @@ router.post('/refresh', async (req, res) => {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({ code: RESPONSE_CODES.UNAUTHORIZED, message: '刷新令牌无效或已过期' });
     }
 
-    // 生成新的令牌
+    // 生成新的令牌。小程序使用长期滚动 refresh token，网页端保持原有策略。
+    const isMiniapp = isMiniappRequest(req);
     const newAccessToken = generateAccessToken({ userId: decoded.userId, user_id: decoded.user_id });
-    const newRefreshToken = generateRefreshToken({ userId: decoded.userId, user_id: decoded.user_id });
+    const newRefreshToken = generateRefreshToken(
+      { userId: decoded.userId, user_id: decoded.user_id },
+      isMiniapp ? '3650d' : undefined
+    );
+    const sessionLifetimeDays = isMiniapp ? 3650 : 7;
 
-    // 获取用户IP和User-Agent
+    // 获取用户IP和User-Agent。IP属地失败不应阻断令牌续期。
     const userIP = getRealIP(req);
     const userAgent = req.headers['user-agent'] || '';
+    try {
+      const ipLocation = await getIPLocation(userIP);
+      await pool.execute(
+        'UPDATE users SET location = ? WHERE id = ?',
+        [ipLocation, decoded.userId.toString()]
+      );
+    } catch (error) {
+      console.warn('刷新令牌时获取IP属地失败，跳过更新:', error.message);
+    }
 
-    // 获取IP地理位置并更新用户location
-    const ipLocation = await getIPLocation(userIP);
+    // 更新会话，并从本次刷新时间重新滚动有效期。
     await pool.execute(
-      'UPDATE users SET location = ? WHERE id = ?',
-      [ipLocation, decoded.userId.toString()]
-    );
-
-    // 更新会话
-    await pool.execute(
-      'UPDATE user_sessions SET token = ?, refresh_token = ?, expires_at = DATE_ADD(NOW(), INTERVAL 7 DAY), user_agent = ? WHERE id = ?',
+      `UPDATE user_sessions
+       SET token = ?, refresh_token = ?, expires_at = DATE_ADD(NOW(), INTERVAL ${sessionLifetimeDays} DAY), user_agent = ?
+       WHERE id = ?`,
       [newAccessToken, newRefreshToken, userAgent, sessionRows[0].id.toString()]
     );
 
