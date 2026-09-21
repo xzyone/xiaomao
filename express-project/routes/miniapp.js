@@ -4,7 +4,7 @@ const { RESPONSE_CODES } = require('../constants');
 const { getMiniappReadonlyMode, getMiniappUiConfig } = require('../utils/miniappPolicy');
 
 const READONLY_UI_KEYS = Object.freeze({
-  titles: ['home', 'detail', 'login', 'profile'],
+  titles: ['home', 'detail'],
   labels: [
     'homeBrand',
     'homeSubtitle',
@@ -13,34 +13,11 @@ const READONLY_UI_KEYS = Object.freeze({
     'reachedEnd',
     'emptyContent',
     'navHome',
-    'navProfile',
     'anonymousUser',
-    'loginBrand',
-    'loginSubtitle',
-    'loginAccount',
-    'loginPassword',
-    'loginSubmit',
-    'loginHint',
-    'profileAccountPrefix',
-    'profileEmptyBio',
-    'profileFollowing',
-    'profileFans',
-    'profileLikes',
-    'profileLogout',
-    'profileGuestTitle',
-    'profileGoLogin',
     'detailOriginal',
     'detailViews'
   ],
-  placeholders: [
-    'loginAccount',
-    'loginPassword'
-  ],
   messages: [
-    'loginCredentialsRequired',
-    'loginSuccess',
-    'loginFailed',
-    'sessionUnavailable',
     'loadFailed',
     'detailLoadFailed',
     'detailOriginalLoading',
