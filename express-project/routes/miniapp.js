@@ -3,7 +3,7 @@ const router = express.Router();
 const { RESPONSE_CODES } = require('../constants');
 const { getMiniappReadonlyMode, getMiniappUiConfig } = require('../utils/miniappPolicy');
 
-const AUDIT_UI_KEYS = Object.freeze({
+const READONLY_UI_KEYS = Object.freeze({
   titles: ['home', 'detail', 'login', 'profile'],
   labels: [
     'homeBrand',
@@ -59,10 +59,10 @@ function pickUiValues(source = {}, keys = []) {
   return result;
 }
 
-function getAuditUiConfig(ui = {}) {
+function getReadonlyUiConfig(ui = {}) {
   const result = {};
 
-  for (const [group, keys] of Object.entries(AUDIT_UI_KEYS)) {
+  for (const [group, keys] of Object.entries(READONLY_UI_KEYS)) {
     const values = pickUiValues(ui[group] || {}, keys);
     if (Object.keys(values).length > 0) result[group] = values;
   }
@@ -72,7 +72,7 @@ function getAuditUiConfig(ui = {}) {
 
 router.get('/config', async (req, res) => {
   try {
-    const auditModeEnabled = await getMiniappReadonlyMode();
+    const readonlyModeEnabled = await getMiniappReadonlyMode();
     const ui = await getMiniappUiConfig();
 
     res.setHeader('Cache-Control', 'no-store, max-age=0');
@@ -80,10 +80,10 @@ router.get('/config', async (req, res) => {
       code: RESPONSE_CODES.SUCCESS,
       message: 'success',
       data: {
-        auditConfig: {
-          auditModeEnabled
+        readonlyConfig: {
+          readonlyModeEnabled
         },
-        ui: auditModeEnabled ? getAuditUiConfig(ui) : ui
+        ui: readonlyModeEnabled ? getReadonlyUiConfig(ui) : ui
       }
     });
   } catch (error) {
