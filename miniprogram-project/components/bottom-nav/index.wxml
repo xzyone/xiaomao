@@ -3,7 +3,7 @@
     <text class="nav-icon">⌂</text>
     <text>{{labels.navHome}}</text>
   </view>
-  <view wx:if="{{!auditModeEnabled}}" class="publish-button" bindtap="goPublish">＋</view>
+  <view wx:if="{{!auditModeEnabled && loggedIn}}" class="publish-button" bindtap="goPublish">＋</view>
   <view wx:if="{{!auditModeEnabled}}" class="nav-item {{current === 'profile' ? 'active' : ''}}" bindtap="goProfile">
     <text class="nav-icon">○</text>
     <text>{{labels.navProfile}}</text>
