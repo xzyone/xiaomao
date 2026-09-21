@@ -1,7 +1,7 @@
 const { apiBaseUrl } = require('../config')
 
 let lastUnauthorizedNoticeAt = 0
-let lastAuditRedirectAt = 0
+let lastReadonlyRedirectAt = 0
 let refreshSessionPromise = null
 
 function getToken() {
@@ -37,19 +37,19 @@ function handleUnauthorized() {
   wx.showToast({ title: '登录已失效，请重新登录', icon: 'none' })
 }
 
-function handleAuditMode() {
+function handleReadonlyMode() {
   try {
     const app = getApp()
     if (app) {
-      if (typeof app.setAuditFallback === 'function') app.setAuditFallback()
-      else if (app.globalData) app.globalData.auditConfig = { auditModeEnabled: true }
+      if (typeof app.setReadonlyFallback === 'function') app.setReadonlyFallback()
+      else if (app.globalData) app.globalData.readonlyConfig = { readonlyModeEnabled: true }
       if (app.globalData) app.globalData.configLoaded = true
     }
   } catch (error) {}
 
   const now = Date.now()
-  if (now - lastAuditRedirectAt < 1500) return
-  lastAuditRedirectAt = now
+  if (now - lastReadonlyRedirectAt < 1500) return
+  lastReadonlyRedirectAt = now
   wx.showToast({ title: '当前仅支持浏览', icon: 'none' })
   setTimeout(() => wx.reLaunch({ url: '/pages/home/index' }), 100)
 }
@@ -65,8 +65,8 @@ function buildHeaders(extra = {}) {
   return headers
 }
 
-function isAuditModeResponse(statusCode, body = {}) {
-  return statusCode === 403 && (body.error === 'MINIAPP_AUDIT_MODE' || body.error === 'MINIAPP_READONLY')
+function isReadonlyModeResponse(statusCode, body = {}) {
+  return statusCode === 403 && (body.error === 'MINIAPP_READONLY' || body.error === 'MINIAPP_READONLY')
 }
 
 async function refreshSession() {
@@ -111,9 +111,9 @@ async function refreshSession() {
           return
         }
 
-        if (isAuditModeResponse(res.statusCode, body)) {
-          handleAuditMode()
-          resolve('audit')
+        if (isReadonlyModeResponse(res.statusCode, body)) {
+          handleReadonlyMode()
+          resolve('readonly')
           return
         }
 
@@ -165,17 +165,17 @@ function request(options, retried = false) {
             reject(error)
             return
           }
-          if (refreshResult === 'audit') {
+          if (refreshResult === 'readonly') {
             const error = new Error('当前仅支持浏览')
             error.statusCode = 403
-            error.error = 'MINIAPP_AUDIT_MODE'
+            error.error = 'MINIAPP_READONLY'
             reject(error)
             return
           }
         }
 
         if (res.statusCode === 401) handleUnauthorized()
-        if (isAuditModeResponse(res.statusCode, body)) handleAuditMode()
+        if (isReadonlyModeResponse(res.statusCode, body)) handleReadonlyMode()
 
         const error = new Error(body.message || `请求失败 (${res.statusCode})`)
         error.statusCode = res.statusCode
@@ -223,17 +223,17 @@ function uploadFile(options, retried = false) {
             reject(error)
             return
           }
-          if (refreshResult === 'audit') {
+          if (refreshResult === 'readonly') {
             const error = new Error('当前仅支持浏览')
             error.statusCode = 403
-            error.error = 'MINIAPP_AUDIT_MODE'
+            error.error = 'MINIAPP_READONLY'
             reject(error)
             return
           }
         }
 
         if (res.statusCode === 401) handleUnauthorized()
-        if (isAuditModeResponse(res.statusCode, body)) handleAuditMode()
+        if (isReadonlyModeResponse(res.statusCode, body)) handleReadonlyMode()
 
         const requestError = new Error(body.message || `上传失败 (${res.statusCode})`)
         requestError.statusCode = res.statusCode
