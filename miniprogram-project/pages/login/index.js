@@ -17,13 +17,13 @@ Page({
   },
   async onLoad() {
     const app = getApp()
-    await app.refreshMiniappConfig()
+    if (!(await app.ensureWritableMode({ toast: false }))) return
     app.setPageTitle('login')
     this.setData({ pageAllowed: true, ui: app.getUi() })
   },
   async onShow() {
     const app = getApp()
-    await app.refreshMiniappConfig()
+    if (!(await app.ensureWritableMode({ toast: false }))) return
     app.setPageTitle('login')
     this.setData({ pageAllowed: true, ui: app.getUi() })
   },
@@ -33,6 +33,7 @@ Page({
   async submit() {
     if (this.data.submitting) return
     const app = getApp()
+    if (!(await app.ensureWritableMode())) return
     if (!this.data.userId.trim() || !this.data.password) {
       return wx.showToast({ title: app.getUiText('messages', 'loginCredentialsRequired'), icon: 'none' })
     }
