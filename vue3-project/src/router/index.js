@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import layout from '@/views/layout/index.vue'
-import explore from '@/views/explore/index.vue'
-import ChannelPage from '@/views/explore/ChannelPage.vue'
 import { getValidChannelPaths } from '@/config/channels'
 
-// Keep the initial explore shell eager; load secondary routes only when visited.
+// Route components are lazy-loaded so the initial bundle only contains the
+// application bootstrap and code required to resolve the current route.
+const layout = () => import('@/views/layout/index.vue')
+const explore = () => import('@/views/explore/index.vue')
+const ChannelPage = () => import('@/views/explore/ChannelPage.vue')
 const publish = () => import('@/views/publish/index.vue')
 const notification = () => import('@/views/notification/index.vue')
 const user = () => import('@/views/user/index.vue')
