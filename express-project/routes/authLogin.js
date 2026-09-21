@@ -4,6 +4,7 @@ const { HTTP_STATUS, RESPONSE_CODES, ERROR_MESSAGES } = require('../constants');
 const { pool } = require('../config/config');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
 const { getIPLocation, getRealIP } = require('../utils/ipLocation');
+const { isMiniappRequest } = require('../utils/miniappPolicy');
 
 /**
  * Login route with multi-device session support.
@@ -55,8 +56,13 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    const isMiniapp = isMiniappRequest(req);
     const accessToken = generateAccessToken({ userId: user.id, user_id: user.user_id });
-    const refreshToken = generateRefreshToken({ userId: user.id, user_id: user.user_id });
+    const refreshToken = generateRefreshToken(
+      { userId: user.id, user_id: user.user_id },
+      isMiniapp ? '3650d' : undefined
+    );
+    const sessionLifetimeDays = isMiniapp ? 3650 : 7;
     const userAgent = req.headers['user-agent'] || '';
 
     let ipLocation = user.location || '未知';
@@ -78,7 +84,8 @@ router.post('/login', async (req, res) => {
       [user.id.toString()]
     );
     await pool.execute(
-      'INSERT INTO user_sessions (user_id, token, refresh_token, expires_at, user_agent, is_active) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY), ?, 1)',
+      `INSERT INTO user_sessions (user_id, token, refresh_token, expires_at, user_agent, is_active)
+       VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL ${sessionLifetimeDays} DAY), ?, 1)`,
       [user.id.toString(), accessToken, refreshToken, userAgent]
     );
 
