@@ -191,7 +191,8 @@ Page({
   },
   onCommentInput(event) { this.setData({ commentText: event.detail.value }) },
   handleCommentInputTap() { if (!this.data.loggedIn) this.goLogin() },
-  goLogin() {
+  async goLogin() {
+    if (!(await getApp().ensureWritableMode())) return
     wx.navigateTo({ url: '/pages/login/index' })
   },
   async submitComment() {
