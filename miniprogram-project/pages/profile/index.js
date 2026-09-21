@@ -6,7 +6,7 @@ Page({
   data: {
     user: null,
     avatarUrl: DEFAULT_AVATAR,
-    auditModeEnabled: true,
+    readonlyModeEnabled: true,
     loading: true,
     loggedIn: false,
     pageAllowed: false,
@@ -16,8 +16,8 @@ Page({
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('profile')
-    const auditModeEnabled = app.isAuditModeEnabled()
-    this.setData({ ui: app.getUi(), pageAllowed: true, auditModeEnabled })
+    const readonlyModeEnabled = app.isReadonlyModeEnabled()
+    this.setData({ ui: app.getUi(), pageAllowed: true, readonlyModeEnabled })
 
     const token = wx.getStorageSync('token')
     if (!token) {
