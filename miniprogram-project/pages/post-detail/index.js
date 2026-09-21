@@ -57,6 +57,7 @@ Page({
     })
   },
   async loadPost() {
+    const app = getApp()
     try {
       const post = await api.detail(this.data.id)
       if (this.data.readonlyModeEnabled && Number(post && post.type) !== 1) {
