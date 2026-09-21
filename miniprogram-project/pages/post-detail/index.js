@@ -19,7 +19,7 @@ Page({
     currentMediaHeight: DEFAULT_MEDIA_HEIGHT_RPX,
     currentImageIndex: 0,
     currentImageCanShowOriginal: false,
-    auditModeEnabled: true,
+    readonlyModeEnabled: true,
     loggedIn: false,
     loading: true,
     ui: { labels: {}, placeholders: {} }
@@ -34,12 +34,12 @@ Page({
     }
     await this.syncAuditMode()
     await this.loadPost()
-    if (!this.data.auditModeEnabled) await this.loadComments()
+    if (!this.data.readonlyModeEnabled) await this.loadComments()
   },
   async onShow() {
-    const wasAuditModeEnabled = this.data.auditModeEnabled
+    const wasAuditModeEnabled = this.data.readonlyModeEnabled
     await this.syncAuditMode()
-    if (this.data.auditModeEnabled) {
+    if (this.data.readonlyModeEnabled) {
       if (this.data.comments.length || this.data.commentText) this.setData({ comments: [], commentText: '' })
       return
     }
@@ -49,10 +49,10 @@ Page({
     const app = getApp()
     await app.refreshMiniappConfig()
     app.setPageTitle('detail')
-    const auditModeEnabled = app.isAuditModeEnabled()
+    const readonlyModeEnabled = app.isReadonlyModeEnabled()
     this.setData({
-      auditModeEnabled,
-      loggedIn: !auditModeEnabled && Boolean(wx.getStorageSync('token')),
+      readonlyModeEnabled,
+      loggedIn: !readonlyModeEnabled && Boolean(wx.getStorageSync('token')),
       ui: app.getUi()
     })
   },
@@ -81,12 +81,12 @@ Page({
     }
   },
   async loadComments() {
-    if (this.data.auditModeEnabled) return
+    if (this.data.readonlyModeEnabled) return
     try {
       const result = await api.msgs(this.data.id)
       this.setData({ comments: (result && result.comments) || [] })
     } catch (error) {
-      if (error.error !== 'MINIAPP_AUDIT_MODE' && error.error !== 'MINIAPP_READONLY') {
+      if (error.error !== 'MINIAPP_READONLY' && error.error !== 'MINIAPP_READONLY') {
         console.warn('加载评论失败:', error)
       }
     }
@@ -179,12 +179,12 @@ Page({
   onCommentInput(event) { this.setData({ commentText: event.detail.value }) },
   handleCommentInputTap() { if (!this.data.loggedIn) this.goLogin() },
   async goLogin() {
-    if (!(await getApp().ensureNormalMode())) return
+    if (!(await getApp().ensureWritableMode())) return
     wx.navigateTo({ url: '/pages/login/index' })
   },
   async submitComment() {
     const app = getApp()
-    if (!(await app.ensureNormalMode())) return
+    if (!(await app.ensureWritableMode())) return
     const content = this.data.commentText.trim()
     if (!content) return
     if (!this.data.loggedIn) return this.goLogin()
