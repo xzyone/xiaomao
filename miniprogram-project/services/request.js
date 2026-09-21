@@ -72,7 +72,7 @@ async function refreshSession() {
   if (refreshSessionPromise) return refreshSessionPromise
 
   const refreshToken = getRefreshToken()
-  if (!refreshToken) return false
+  if (!refreshToken) return 'invalid'
 
   refreshSessionPromise = new Promise(resolve => {
     wx.request({
@@ -105,15 +105,25 @@ async function refreshSession() {
             }
           } catch (error) {}
 
-          resolve(true)
+          resolve('ok')
           return
         }
 
-        if (isAuditModeResponse(res.statusCode, body)) handleAuditMode()
-        resolve(false)
+        if (isAuditModeResponse(res.statusCode, body)) {
+          handleAuditMode()
+          resolve('audit')
+          return
+        }
+
+        if (res.statusCode === 400 || res.statusCode === 401) {
+          resolve('invalid')
+          return
+        }
+
+        resolve('unavailable')
       },
       fail() {
-        resolve(false)
+        resolve('unavailable')
       }
     })
   })
@@ -142,9 +152,22 @@ function request(options, retried = false) {
         }
 
         if (res.statusCode === 401 && !retried && url !== '/auth/refresh') {
-          const refreshed = await refreshSession()
-          if (refreshed) {
+          const refreshResult = await refreshSession()
+          if (refreshResult === 'ok') {
             request(options, true).then(resolve, reject)
+            return
+          }
+          if (refreshResult === 'unavailable') {
+            const error = new Error('暂时无法验证登录状态，请检查网络')
+            error.statusCode = 0
+            reject(error)
+            return
+          }
+          if (refreshResult === 'audit') {
+            const error = new Error('当前仅支持浏览')
+            error.statusCode = 403
+            error.error = 'MINIAPP_AUDIT_MODE'
+            reject(error)
             return
           }
         }
@@ -187,9 +210,22 @@ function uploadFile(options, retried = false) {
         }
 
         if (res.statusCode === 401 && !retried) {
-          const refreshed = await refreshSession()
-          if (refreshed) {
+          const refreshResult = await refreshSession()
+          if (refreshResult === 'ok') {
             uploadFile(options, true).then(resolve, reject)
+            return
+          }
+          if (refreshResult === 'unavailable') {
+            const error = new Error('暂时无法验证登录状态，请检查网络')
+            error.statusCode = 0
+            reject(error)
+            return
+          }
+          if (refreshResult === 'audit') {
+            const error = new Error('当前仅支持浏览')
+            error.statusCode = 403
+            error.error = 'MINIAPP_AUDIT_MODE'
+            reject(error)
             return
           }
         }
