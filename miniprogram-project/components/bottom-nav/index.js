@@ -2,6 +2,7 @@ Component({
   properties: {
     current: { type: String, value: 'home' },
     auditModeEnabled: { type: Boolean, value: true },
+    loggedIn: { type: Boolean, value: false },
     labels: { type: Object, value: {} }
   },
   methods: {
