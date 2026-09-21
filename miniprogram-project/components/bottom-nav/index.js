@@ -14,7 +14,6 @@ Component({
       wx.navigateTo({ url: '/pages/editor/index' })
     },
     goProfile() {
-      if (this.data.auditModeEnabled) return
       wx.navigateTo({ url: '/pages/profile/index' })
     }
   }
