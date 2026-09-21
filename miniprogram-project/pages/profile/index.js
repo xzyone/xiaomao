@@ -8,6 +8,7 @@ Page({
     avatarUrl: DEFAULT_AVATAR,
     auditModeEnabled: true,
     loading: true,
+    loggedIn: false,
     pageAllowed: false,
     ui: { labels: {} }
   },
@@ -20,13 +21,13 @@ Page({
 
     const token = wx.getStorageSync('token')
     if (!token) {
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loggedIn: false, loading: false })
       return
     }
 
     const sessionState = await app.validateSession(true)
     if (sessionState === false) {
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loading: false })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, auditModeEnabled: false, loggedIn: false, loading: false })
       return
     }
 
@@ -35,6 +36,7 @@ Page({
       user,
       avatarUrl: user ? (user.avatar || DEFAULT_AVATAR) : DEFAULT_AVATAR,
       auditModeEnabled: false,
+      loggedIn: true,
       loading: false
     })
   },
@@ -52,7 +54,7 @@ Page({
       const app = getApp()
       app.globalData.sessionValid = false
       app.globalData.lastSessionCheckAt = 0
-      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR })
+      this.setData({ user: null, avatarUrl: DEFAULT_AVATAR, loggedIn: false })
     }
   }
 })
