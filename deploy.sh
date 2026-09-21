@@ -25,12 +25,12 @@ Usage:
   sh deploy.sh status    Show compose status
 
 Set the optional build/update proxy in the local .env file:
-  XIAOMAO_PROXY=http://127.0.0.1:7890
+  DEPLOY_PROXY=http://127.0.0.1:7890
 
 You can also override it for one run:
-  XIAOMAO_PROXY=http://127.0.0.1:7890 sh deploy.sh deploy
+  DEPLOY_PROXY=http://127.0.0.1:7890 sh deploy.sh deploy
 
-Leave XIAOMAO_PROXY empty to disable the proxy.
+Leave DEPLOY_PROXY empty to disable the proxy.
 
 Database schema migrations run automatically after a successful backend image build
 and before the backend container is replaced.
@@ -72,10 +72,10 @@ read_env_value() {
 }
 
 load_proxy_config() {
-  if [ "${XIAOMAO_PROXY+x}" = "x" ]; then
-    PROXY_URL="$XIAOMAO_PROXY"
+  if [ "${DEPLOY_PROXY+x}" = "x" ]; then
+    PROXY_URL="$DEPLOY_PROXY"
   elif [ -f "$REPO_DIR/.env" ]; then
-    PROXY_URL="$(read_env_value XIAOMAO_PROXY)"
+    PROXY_URL="$(read_env_value DEPLOY_PROXY)"
   else
     PROXY_URL=""
   fi
