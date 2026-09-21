@@ -297,7 +297,7 @@ async function miniappReadonlyGuard(req, res, next) {
       return next();
     }
 
-    // Only data required by the audit presentation remains available here.
+    // Only data required by the read-only experience remains available here.
     if (requestPath === '/categories' || requestPath === '/tags' || requestPath === '/search') {
       return next();
     }
