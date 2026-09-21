@@ -1,40 +1,43 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import layout from '@/views/layout/index.vue'
 import explore from '@/views/explore/index.vue'
-import publish from '@/views/publish/index.vue'
-import notification from '@/views/notification/index.vue'
-import user from '@/views/user/index.vue'
-import userProfile from '@/views/user/UserProfile.vue'
-import FollowList from '@/views/user/FollowList.vue'
 import ChannelPage from '@/views/explore/ChannelPage.vue'
-import PostDetail from '@/views/PostDetail.vue'
-import SearchResult from '@/views/search/SearchResult.vue'
-import PostManagementPage from '@/views/post-management/index.vue'
-import DraftBoxPage from '@/views/draft-box/index.vue'
-import RecycleBinPage from '@/views/recycle-bin/index.vue'
-import NotFound from '@/views/NotFound.vue'
 import { getValidChannelPaths } from '@/config/channels'
 
-// 后台管理系统组件
-import AdminLogin from '@/views/admin/AdminLogin.vue'
-import AdminLayout from '@/views/admin/AdminLayout.vue'
-import ApiDocs from '@/views/admin/ApiDocs.vue'
-import AdminMonitor from '@/views/admin/AdminMonitor.vue'
-import UserManagement from '@/views/admin/UserManagement.vue'
-import PostManagement from '@/views/admin/PostManagement.vue'
-import CommentManagement from '@/views/admin/CommentManagement.vue'
-import CategoryManagement from '@/views/admin/CategoryManagement.vue'
-import TagManagement from '@/views/admin/TagManagement.vue'
-import LikeManagement from '@/views/admin/LikeManagement.vue'
-import CollectionManagement from '@/views/admin/CollectionManagement.vue'
-import FollowManagement from '@/views/admin/FollowManagement.vue'
-import NotificationManagement from '@/views/admin/NotificationManagement.vue'
-import SessionManagement from '@/views/admin/SessionManagement.vue'
-import AdminSessionManagement from '@/views/admin/AdminSessionManagement.vue'
-import AdminManagement from '@/views/admin/AdminManagement.vue'
-import AuditManagement from '@/views/admin/AuditManagement.vue'
-import PostAudit from '@/views/admin/PostAudit.vue'
-import SystemSettings from '@/views/admin/SystemSettings.vue'
+// Keep the initial explore shell eager; load secondary routes only when visited.
+const publish = () => import('@/views/publish/index.vue')
+const notification = () => import('@/views/notification/index.vue')
+const user = () => import('@/views/user/index.vue')
+const userProfile = () => import('@/views/user/UserProfile.vue')
+const FollowList = () => import('@/views/user/FollowList.vue')
+const PostDetail = () => import('@/views/PostDetail.vue')
+const SearchResult = () => import('@/views/search/SearchResult.vue')
+const PostManagementPage = () => import('@/views/post-management/index.vue')
+const DraftBoxPage = () => import('@/views/draft-box/index.vue')
+const RecycleBinPage = () => import('@/views/recycle-bin/index.vue')
+const NotFound = () => import('@/views/NotFound.vue')
+
+// Admin routes are intentionally lazy so the public site does not ship the
+// management UI in its initial JavaScript bundle.
+const AdminLogin = () => import('@/views/admin/AdminLogin.vue')
+const AdminLayout = () => import('@/views/admin/AdminLayout.vue')
+const ApiDocs = () => import('@/views/admin/ApiDocs.vue')
+const AdminMonitor = () => import('@/views/admin/AdminMonitor.vue')
+const UserManagement = () => import('@/views/admin/UserManagement.vue')
+const PostManagement = () => import('@/views/admin/PostManagement.vue')
+const CommentManagement = () => import('@/views/admin/CommentManagement.vue')
+const CategoryManagement = () => import('@/views/admin/CategoryManagement.vue')
+const TagManagement = () => import('@/views/admin/TagManagement.vue')
+const LikeManagement = () => import('@/views/admin/LikeManagement.vue')
+const CollectionManagement = () => import('@/views/admin/CollectionManagement.vue')
+const FollowManagement = () => import('@/views/admin/FollowManagement.vue')
+const NotificationManagement = () => import('@/views/admin/NotificationManagement.vue')
+const SessionManagement = () => import('@/views/admin/SessionManagement.vue')
+const AdminSessionManagement = () => import('@/views/admin/AdminSessionManagement.vue')
+const AdminManagement = () => import('@/views/admin/AdminManagement.vue')
+const AuditManagement = () => import('@/views/admin/AuditManagement.vue')
+const PostAudit = () => import('@/views/admin/PostAudit.vue')
+const SystemSettings = () => import('@/views/admin/SystemSettings.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
