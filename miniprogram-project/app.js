@@ -233,11 +233,15 @@ App({
   },
 
   applyMiniappConfig(result) {
-    const readonlyModeEnabled = !(
-      result &&
-      result.readonlyConfig &&
-      result.readonlyConfig.readonlyModeEnabled === false
-    )
+    const readonlyValue = result && result.readonlyConfig
+      ? result.readonlyConfig.readonlyModeEnabled
+      : undefined
+    const legacyReadonlyValue = result && result.auditConfig
+      ? result.auditConfig.auditModeEnabled
+      : undefined
+    const readonlyModeEnabled = typeof readonlyValue === 'boolean'
+      ? readonlyValue
+      : (typeof legacyReadonlyValue === 'boolean' ? legacyReadonlyValue : true)
 
     const ui = cloneDefaultUi()
     const remoteUi = result && result.ui && typeof result.ui === 'object' ? result.ui : {}
