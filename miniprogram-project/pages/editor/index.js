@@ -123,7 +123,7 @@ Page({
         count: 1,
         mediaType: ['video'],
         sourceType: ['album', 'camera'],
-        maxDuration: 120
+        maxDuration: 30
       })
       const file = result.tempFiles && result.tempFiles[0]
       if (file) {
