@@ -2,6 +2,7 @@
 import SvgIcon from '@/components/SvgIcon.vue'
 import DropdownMenu from '@/components/menu/DropdownMenu.vue'
 import CommonMenu from '@/components/menu/CommonMenu.vue'
+import MiniProgramQrCard from './MiniProgramQrCard.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouteUtils } from '@/composables/useRouteUtils'
 import { useUserStore } from '@/stores/user.js'
@@ -121,6 +122,7 @@ onMounted(() => {
     </ul>
 
     <div class="sidebar-footer">
+      <MiniProgramQrCard />
       <DropdownMenu direction="up">
         <template #trigger>
           <li class="sidebar-footer-item">
