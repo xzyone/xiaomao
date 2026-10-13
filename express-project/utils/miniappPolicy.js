@@ -13,6 +13,19 @@ const MINIAPP_UI_DEFAULTS = Object.freeze({
     profile: '我的'
   }),
   labels: Object.freeze({
+    registerSwitch: '没有账号？立即注册',
+    loginSwitch: '已有账号？立即登录',
+    registerSubmit: '注册',
+    registerNickname: '昵称',
+    registerConfirmPassword: '确认密码',
+    registerEmail: '邮箱',
+    registerEmailCode: '邮箱验证码',
+    registerCaptcha: '图形验证码',
+    registerSendCode: '获取验证码',
+    registerResend: '秒后重发',
+    registerRefreshCaptcha: '换一张',
+    registerHint: '找回密码请前往网页端操作。',
+
     homeBrand: '小毛毛',
     homeSubtitle: '毛毛的快乐狗生',
     recommend: '推荐',
@@ -53,6 +66,12 @@ const MINIAPP_UI_DEFAULTS = Object.freeze({
     detailIpPrefix: 'IP属地 · '
   }),
   placeholders: Object.freeze({
+    registerNickname: '请输入昵称（最多10字）',
+    registerConfirmPassword: '请再次输入密码',
+    registerEmail: '请输入邮箱地址',
+    registerEmailCode: '请输入6位邮箱验证码',
+    registerCaptcha: '请输入图形验证码',
+
     editorTitle: '填写标题会有更多赞哦',
     editorContent: '分享毛毛的这一刻...',
     editorTags: '多个标签用空格或逗号分隔',
@@ -62,6 +81,20 @@ const MINIAPP_UI_DEFAULTS = Object.freeze({
     detailCommentLogin: '登录后参与评论'
   }),
   messages: Object.freeze({
+    registerSuccess: '注册成功',
+    registerFailed: '注册失败，请重试',
+    registerInvalidAccount: '账号须为3–15位字母、数字或下划线',
+    registerInvalidNickname: '昵称须为1–10个字符',
+    registerInvalidPassword: '密码须为6–20位',
+    registerPasswordMismatch: '两次输入的密码不一致',
+    registerInvalidEmail: '请输入有效邮箱地址',
+    registerCodeRequired: '请输入6位邮箱验证码',
+    registerCaptchaRequired: '请填写图形验证码',
+    registerEmailUnavailable: '邮箱验证暂不可用，请稍后重试',
+    registerCodeSent: '验证码已发送，请查收邮箱',
+    registerCodeFailed: '验证码发送失败，请稍后重试',
+    registerCaptchaFailed: '图形验证码加载失败，请重试',
+
     browseOnly: '当前仅支持浏览',
     loginRequired: '请先登录',
     sessionUnavailable: '暂时无法验证登录状态，请检查网络',

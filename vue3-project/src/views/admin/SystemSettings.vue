@@ -111,6 +111,19 @@ const defaultMiniappUi = {
     home: '小毛毛', detail: '笔记详情', editor: '发布笔记', login: '登录', profile: '我的'
   },
   labels: {
+    registerSwitch: '没有账号？立即注册',
+    loginSwitch: '已有账号？立即登录',
+    registerSubmit: '注册',
+    registerNickname: '昵称',
+    registerConfirmPassword: '确认密码',
+    registerEmail: '邮箱',
+    registerEmailCode: '邮箱验证码',
+    registerCaptcha: '图形验证码',
+    registerSendCode: '获取验证码',
+    registerResend: '秒后重发',
+    registerRefreshCaptcha: '换一张',
+    registerHint: '找回密码请前往网页端操作。',
+
     homeBrand: '小毛毛', homeSubtitle: '毛毛的快乐狗生', recommend: '推荐', loading: '加载中...',
     reachedEnd: '已经到底啦', emptyContent: '还没有内容', navHome: '首页', navProfile: '我的',
     postVideo: '视频', anonymousUser: '匿名用户', editorImageTab: '图文', editorVideoTab: '视频',
@@ -123,11 +136,31 @@ const defaultMiniappUi = {
     detailSend: '发送', detailIpPrefix: 'IP属地 · '
   },
   placeholders: {
+    registerNickname: '请输入昵称（最多10字）',
+    registerConfirmPassword: '请再次输入密码',
+    registerEmail: '请输入邮箱地址',
+    registerEmailCode: '请输入6位邮箱验证码',
+    registerCaptcha: '请输入图形验证码',
+
     editorTitle: '填写标题会有更多赞哦', editorContent: '分享毛毛的这一刻...',
     editorTags: '多个标签用空格或逗号分隔', loginAccount: '请输入毛毛号', loginPassword: '请输入密码',
     detailComment: '说点什么...', detailCommentLogin: '登录后参与评论'
   },
   messages: {
+    registerSuccess: '注册成功',
+    registerFailed: '注册失败，请重试',
+    registerInvalidAccount: '账号须为3–15位字母、数字或下划线',
+    registerInvalidNickname: '昵称须为1–10个字符',
+    registerInvalidPassword: '密码须为6–20位',
+    registerPasswordMismatch: '两次输入的密码不一致',
+    registerInvalidEmail: '请输入有效邮箱地址',
+    registerCodeRequired: '请输入6位邮箱验证码',
+    registerCaptchaRequired: '请填写图形验证码',
+    registerEmailUnavailable: '邮箱验证暂不可用，请稍后重试',
+    registerCodeSent: '验证码已发送，请查收邮箱',
+    registerCodeFailed: '验证码发送失败，请稍后重试',
+    registerCaptchaFailed: '图形验证码加载失败，请重试',
+
     browseOnly: '当前仅支持浏览', loginRequired: '请先登录', sessionUnavailable: '暂时无法验证登录状态，请检查网络',
     loginCredentialsRequired: '请输入毛毛号和密码', loginSuccess: '登录成功', loginFailed: '登录失败', loadFailed: '加载失败',
     editorTitleContentRequired: '标题和正文不能为空', editorImageRequired: '请选择至少一张图片', editorVideoRequired: '请选择视频',
@@ -149,6 +182,19 @@ const uiFieldGroups = [
   {
     key: 'labels', label: '页面标签与按钮', maxLength: 100,
     fields: [
+      { key: 'registerSwitch', label: '注册-没有账号？立即注册' },
+      { key: 'loginSwitch', label: '注册-已有账号？立即登录' },
+      { key: 'registerSubmit', label: '注册-注册' },
+      { key: 'registerNickname', label: '注册-昵称' },
+      { key: 'registerConfirmPassword', label: '注册-确认密码' },
+      { key: 'registerEmail', label: '注册-邮箱' },
+      { key: 'registerEmailCode', label: '注册-邮箱验证码' },
+      { key: 'registerCaptcha', label: '注册-图形验证码' },
+      { key: 'registerSendCode', label: '注册-获取验证码' },
+      { key: 'registerResend', label: '注册-秒后重发' },
+      { key: 'registerRefreshCaptcha', label: '注册-换一张' },
+      { key: 'registerHint', label: '注册-找回密码请前往网页端操作。' },
+
       { key: 'homeBrand', label: '首页品牌名' }, { key: 'homeSubtitle', label: '首页副标题' },
       { key: 'recommend', label: '推荐分类' }, { key: 'loading', label: '加载状态' },
       { key: 'reachedEnd', label: '列表到底提示' }, { key: 'emptyContent', label: '空内容提示' },
@@ -173,6 +219,12 @@ const uiFieldGroups = [
   {
     key: 'placeholders', label: '输入框提示', maxLength: 100,
     fields: [
+      { key: 'registerNickname', label: '注册-请输入昵称（最多10字）' },
+      { key: 'registerConfirmPassword', label: '注册-请再次输入密码' },
+      { key: 'registerEmail', label: '注册-请输入邮箱地址' },
+      { key: 'registerEmailCode', label: '注册-请输入6位邮箱验证码' },
+      { key: 'registerCaptcha', label: '注册-请输入图形验证码' },
+
       { key: 'editorTitle', label: '编辑-标题输入提示' }, { key: 'editorContent', label: '编辑-正文输入提示' },
       { key: 'editorTags', label: '编辑-标签输入提示' }, { key: 'loginAccount', label: '登录-账号输入提示' },
       { key: 'loginPassword', label: '登录-密码输入提示' }, { key: 'detailComment', label: '详情-评论输入提示' },
@@ -182,6 +234,20 @@ const uiFieldGroups = [
   {
     key: 'messages', label: 'Toast 与状态提示', maxLength: 100,
     fields: [
+      { key: 'registerSuccess', label: '注册-注册成功' },
+      { key: 'registerFailed', label: '注册-注册失败，请重试' },
+      { key: 'registerInvalidAccount', label: '注册-账号须为3–15位字母、数字或下划线' },
+      { key: 'registerInvalidNickname', label: '注册-昵称须为1–10个字符' },
+      { key: 'registerInvalidPassword', label: '注册-密码须为6–20位' },
+      { key: 'registerPasswordMismatch', label: '注册-两次输入的密码不一致' },
+      { key: 'registerInvalidEmail', label: '注册-请输入有效邮箱地址' },
+      { key: 'registerCodeRequired', label: '注册-请输入6位邮箱验证码' },
+      { key: 'registerCaptchaRequired', label: '注册-请填写图形验证码' },
+      { key: 'registerEmailUnavailable', label: '注册-邮箱验证暂不可用，请稍后重试' },
+      { key: 'registerCodeSent', label: '注册-验证码已发送，请查收邮箱' },
+      { key: 'registerCodeFailed', label: '注册-验证码发送失败，请稍后重试' },
+      { key: 'registerCaptchaFailed', label: '注册-图形验证码加载失败，请重试' },
+
       { key: 'browseOnly', label: '仅浏览提示' }, { key: 'loginRequired', label: '需要登录' },
       { key: 'sessionUnavailable', label: '登录状态不可用' }, { key: 'loginCredentialsRequired', label: '账号密码未填' },
       { key: 'loginSuccess', label: '登录成功' }, { key: 'loginFailed', label: '登录失败' },
