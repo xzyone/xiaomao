@@ -61,7 +61,7 @@ router.get('/email-config', (req, res) => {
 });
 
 // 生成验证码
-router.get('/captcha', (req, res) => {
+router.get('/captcha', async (req, res) => {
   try {
     // 字体文件路径
     const fontDir = path.join(__dirname, '..', 'fonts');
@@ -104,9 +104,15 @@ router.get('/captcha', (req, res) => {
       }
     }
 
+    // WeChat image components cannot reliably render SVG; keep the web response unchanged.
+    const captchaPng = req.query.format === 'png'
+      ? (await require('sharp')(Buffer.from(captcha.data)).png().toBuffer()).toString('base64')
+      : undefined;
+
     res.json({
       code: RESPONSE_CODES.SUCCESS,
       data: {
+        captchaPng,
         captchaId,
         captchaSvg: captcha.data
       },
@@ -478,6 +484,10 @@ router.delete('/unbind-email', authenticateToken, async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { user_id, nickname, password, captchaId, captchaText, email, emailCode } = req.body;
+
+    if (isMiniappRequest(req) && !emailConfig.enabled) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ code: RESPONSE_CODES.VALIDATION_ERROR, message: '邮箱验证暂不可用，请稍后重试' });
+    }
 
     // 根据邮件功能是否启用，决定必填参数
     const isEmailEnabled = emailConfig.enabled;

@@ -10,7 +10,27 @@
     <input class="input" value="{{userId}}" placeholder="{{ui.placeholders.loginAccount}}" bindinput="onUserIdInput" />
     <text class="label second">{{ui.labels.loginPassword}}</text>
     <input class="input" value="{{password}}" password placeholder="{{ui.placeholders.loginPassword}}" bindinput="onPasswordInput" />
-    <button class="login-button" loading="{{submitting}}" bindtap="submit">{{ui.labels.loginSubmit}}</button>
-    <text class="hint">{{ui.labels.loginHint}}</text>
+    <block wx:if="{{registerMode}}">
+      <text class="label second">{{ui.labels.registerNickname}}</text>
+      <input class="input" value="{{nickname}}" maxlength="10" placeholder="{{ui.placeholders.registerNickname}}" data-field="nickname" bindinput="onRegisterInput" />
+      <text class="label second">{{ui.labels.registerConfirmPassword}}</text>
+      <input class="input" value="{{confirmPassword}}" password maxlength="20" placeholder="{{ui.placeholders.registerConfirmPassword}}" data-field="confirmPassword" bindinput="onRegisterInput" />
+      <text class="label second">{{ui.labels.registerEmail}}</text>
+      <input class="input" value="{{email}}" maxlength="320" placeholder="{{ui.placeholders.registerEmail}}" data-field="email" bindinput="onRegisterInput" />
+      <text class="label second">{{ui.labels.registerEmailCode}}</text>
+      <view class="code-row">
+        <input class="input code-input" value="{{emailCode}}" type="number" maxlength="6" placeholder="{{ui.placeholders.registerEmailCode}}" data-field="emailCode" bindinput="onRegisterInput" />
+        <button class="code-button" disabled="{{sendingCode || countdown > 0 || submitting}}" loading="{{sendingCode}}" bindtap="sendCode">{{countdown > 0 ? countdown + ui.labels.registerResend : ui.labels.registerSendCode}}</button>
+      </view>
+      <text class="label second">{{ui.labels.registerCaptcha}}</text>
+      <view class="code-row">
+        <input class="input code-input" value="{{captchaText}}" maxlength="4" placeholder="{{ui.placeholders.registerCaptcha}}" data-field="captchaText" bindinput="onRegisterInput" />
+        <image wx:if="{{captchaImage}}" class="captcha-image" src="{{captchaImage}}" mode="aspectFit" bindtap="refreshCaptcha" />
+      </view>
+      <button class="switch-button" disabled="{{loadingCaptcha || submitting}}" loading="{{loadingCaptcha}}" bindtap="refreshCaptcha">{{ui.labels.registerRefreshCaptcha}}</button>
+    </block>
+    <button class="login-button" disabled="{{submitting || sendingCode || (registerMode && loadingCaptcha)}}" loading="{{submitting}}" bindtap="submit">{{registerMode ? ui.labels.registerSubmit : ui.labels.loginSubmit}}</button>
+    <button class="switch-button" disabled="{{submitting || sendingCode}}" bindtap="toggleMode">{{registerMode ? ui.labels.loginSwitch : ui.labels.registerSwitch}}</button>
+    <text class="hint">{{ui.labels.registerHint}}</text>
   </view>
 </view>

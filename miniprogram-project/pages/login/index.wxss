@@ -11,3 +11,10 @@
 .login-button { width: 62%; margin: 48rpx auto 0; height: 88rpx; padding: 0; border-radius: 44rpx; background: #ff2442; color: #fff; font-size: 29rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; box-sizing: border-box; }
 .login-button::after { border: none; }
 .hint { display: block; margin-top: 26rpx; text-align: center; color: #aaa; font-size: 22rpx; line-height: 1.6; }
+
+.code-row { display: flex; align-items: center; gap: 16rpx; }
+.code-input { flex: 1; min-width: 0; }
+.code-button { flex-shrink: 0; margin: 0; padding: 0 18rpx; font-size: 24rpx; line-height: 88rpx; color: #ff2442; background: #fff0f3; border-radius: 16rpx; }
+.captcha-image { width: 220rpx; height: 88rpx; flex-shrink: 0; }
+.switch-button { margin: 20rpx auto 0; padding: 8rpx; background: transparent; color: #ff2442; font-size: 25rpx; line-height: 1.6; }
+.switch-button::after, .code-button::after { border: none; }

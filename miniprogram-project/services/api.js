@@ -41,6 +41,23 @@ async function login(userId, password) {
   return { ...result, user: normalizeUser(result.user, apiBaseUrl) }
 }
 
+async function register(data) {
+  const result = unwrap(await request({ url: '/auth/register', method: 'POST', data }))
+  return { ...result, user: normalizeUser(result.user, apiBaseUrl) }
+}
+
+async function emailConfig() {
+  return unwrap(await request({ url: '/auth/email-config' }))
+}
+
+async function sendEmailCode(email) {
+  return request({ url: '/auth/send-email-code', method: 'POST', data: { email } })
+}
+
+async function captcha() {
+  return unwrap(await request({ url: '/auth/captcha?format=png' }))
+}
+
 async function logout() {
   return unwrap(await request({ url: '/auth/logout', method: 'POST' }))
 }
@@ -75,6 +92,10 @@ module.exports = {
   categories,
   msgs,
   login,
+  register,
+  emailConfig,
+  sendEmailCode,
+  captcha,
   logout,
   getCurrentUser,
   msg,
