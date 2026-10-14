@@ -2009,11 +2009,27 @@ router.get('/admin-sessions', adminAuth, async (req, res) => {
 
 
 // ===== USERS CRUD (使用工厂模式) =====
+// Empty email clears the binding; omitted email preserves it on partial updates.
+async function validateAdminUserEmail(data, id) {
+  if (data.email === undefined) return { isValid: true }
+  if (typeof data.email !== 'string') return { isValid: false, message: '邮箱格式不正确' }
+  data.email = data.email.trim()
+  if (!data.email) return { isValid: true }
+  if (data.email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    return { isValid: false, message: '邮箱格式不正确' }
+  }
+  const query = 'SELECT id FROM users WHERE email = ?' + (id ? ' AND id != ?' : '') + ' LIMIT 1'
+  const params = id ? [data.email, String(id)] : [data.email]
+  const [rows] = await pool.execute(query, params)
+  if (rows.length) return { isValid: false, message: '该邮箱已被其他用户使用', code: RESPONSE_CODES.CONFLICT }
+  return { isValid: true }
+}
+
 const usersCrudConfig = {
   table: 'users',
   name: '用户',
   requiredFields: ['user_id', 'nickname'],
-  updateFields: ['user_id', 'nickname', 'avatar', 'bio', 'location', 'is_active', 'gender', 'zodiac_sign', 'mbti', 'education', 'major', 'interests', 'verified'],
+  updateFields: ['user_id', 'email', 'nickname', 'avatar', 'bio', 'location', 'is_active', 'gender', 'zodiac_sign', 'mbti', 'education', 'major', 'interests', 'verified'],
   uniqueFields: ['user_id'],
   cascadeRules: [
     { table: 'posts', field: 'user_id' },
@@ -2036,6 +2052,9 @@ const usersCrudConfig = {
 
   // 自定义数据处理
   beforeCreate: async (data) => {
+    const emailValidation = await validateAdminUserEmail(data)
+    if (!emailValidation.isValid) return emailValidation
+
     // 处理interests字段（转换为JSON字符串）
     if (data.interests) {
       data.interests = Array.isArray(data.interests) ? JSON.stringify(data.interests) : data.interests
@@ -2060,7 +2079,10 @@ const usersCrudConfig = {
     return { isValid: true }
   },
 
-  beforeUpdate: async (data) => {
+  beforeUpdate: async (data, id) => {
+    const emailValidation = await validateAdminUserEmail(data, id)
+    if (!emailValidation.isValid) return emailValidation
+
     // 处理interests字段（转换为JSON字符串）
     if (data.interests) {
       data.interests = Array.isArray(data.interests) ? JSON.stringify(data.interests) : data.interests
