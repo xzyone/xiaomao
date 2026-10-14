@@ -61,7 +61,7 @@ const columns = [
   { key: 'nickname', label: '用户昵称', sortable: false },
   { key: 'avatar', label: '头像', type: 'image', sortable: false },
   { key: 'bio', label: '简介', type: 'content', sortable: false },
-  { key: 'email', label: '邮箱', type: 'content', sortable: false },
+  { key: 'email', label: '邮箱', type: 'text', sortable: false },
   { key: 'location', label: 'IP属地', sortable: false },
   { key: 'personality_tags', label: '个性标签', type: 'personality-tags', sortable: false },
   { key: 'follow_count', label: '关注数', sortable: false },
